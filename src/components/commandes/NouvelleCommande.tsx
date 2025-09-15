@@ -21,7 +21,6 @@ interface Produit {
 interface CartItem {
   produit: Produit;
   quantite: number;
-  remarque?: string;
 }
 
 interface Client {
@@ -115,7 +114,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             : item
         );
       }
-      return [...prev, { produit, quantite: 1, remarque: '' }];
+      return [...prev, { produit, quantite: 1 }];
     });
   };
 
@@ -135,6 +134,11 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
   const calculerTotal = () => {
     return panier.reduce((total, item) => total + (item.produit.prix * item.quantite), 0);
+  };
+
+  const getQuantiteInPanier = (produitId: string) => {
+    const item = panier.find(p => p.produit.id === produitId);
+    return item ? item.quantite : 0;
   };
 
   const validerCommande = async () => {
@@ -237,7 +241,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         produit_id: item.produit.id,
         quantite: item.quantite,
         prix_unitaire: item.produit.prix,
-        remarque: item.remarque || null
+        remarque: null
       }));
 
       const { error: itemsError } = await supabase
@@ -470,21 +474,38 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
               {/* Produits */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                {produitsFiltrés.map(produit => (
-                  <div key={produit.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{formatProduitNom(produit.nom, produit.categorie)}</h4>
-                      <p className="text-red-600 font-semibold">{produit.prix.toFixed(2)}€</p>
-                    </div>
-                    <Button
-                      onClick={() => ajouterAuPanier(produit)}
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-700"
+                {produitsFiltrés.map(produit => {
+                  const quantiteInPanier = getQuantiteInPanier(produit.id);
+                  const isSelected = quantiteInPanier > 0;
+                  
+                  return (
+                    <div 
+                      key={produit.id} 
+                      className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+                        isSelected ? 'bg-red-50 border-2 border-red-200' : 'bg-gray-50 border-2 border-transparent'
+                      }`}
                     >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex-1">
+                        <h4 className="font-medium">{formatProduitNom(produit.nom, produit.categorie)}</h4>
+                        <p className="text-red-600 font-semibold">{produit.prix.toFixed(2)}€</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {isSelected && (
+                          <Badge variant="secondary" className="bg-red-100 text-red-700">
+                            {quantiteInPanier}
+                          </Badge>
+                        )}
+                        <Button
+                          onClick={() => ajouterAuPanier(produit)}
+                          size="sm"
+                          className={isSelected ? "bg-red-700 hover:bg-red-800" : "bg-red-600 hover:bg-red-700"}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -502,7 +523,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                   <p className="text-gray-500 text-center py-4">Panier vide</p>
                 ) : (
                   panier.map((item) => (
-                    <div key={item.produit.id} className="p-2 bg-gray-50 rounded space-y-2">
+                    <div key={item.produit.id} className="p-2 bg-gray-50 rounded">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h5 className="text-sm font-medium">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
@@ -528,19 +549,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                           </Button>
                         </div>
                       </div>
-                      <Textarea
-                        placeholder="Remarque pour ce produit..."
-                        value={item.remarque || ''}
-                        onChange={(e) => {
-                          setPanier(prev => prev.map(p => 
-                            p.produit.id === item.produit.id 
-                              ? { ...p, remarque: e.target.value }
-                              : p
-                          ));
-                        }}
-                        rows={1}
-                        className="text-xs"
-                      />
                     </div>
                   ))
                 )}
