@@ -33,31 +33,42 @@ const LivreurDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Profil simulé pour le livreur
-  const profile = { id: '00000000-0000-0000-0000-000000000001', role: 'livreur' };
+  // Profil du livreur (si connecté)
+  const [livreurProfileId, setLivreurProfileId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) {
+        setLivreurProfileId(null);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', user.id)
+        .eq('role', 'livreur')
+        .single();
+      setLivreurProfileId(profile?.id ?? null);
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     fetchCommandes();
-    
+
     // Écouter les mises à jour en temps réel pour toutes les tables
     const channel = supabase
       .channel('livreur-realtime')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'commandes'
-        },
+        { event: '*', schema: 'public', table: 'commandes' },
         () => fetchCommandes()
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'commande_items'
-        },
+        { event: '*', schema: 'public', table: 'commande_items' },
         () => fetchCommandes()
       )
       .subscribe();
@@ -86,19 +97,41 @@ const LivreurDashboard = () => {
         .order('created_at', { ascending: true });
 
       // Mes livraisons en cours
-      const { data: mesLivraisonsData, error: error2 } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients (nom, telephone, adresse),
-          commande_items (
-            quantite,
-            produits (nom)
-          )
-        `)
-        .eq('livreur_id', profile.id)
-        .in('statut', ['en_livraison'])
-        .order('created_at', { ascending: true });
+      let mesLivraisonsData = null;
+      let error2 = null as any;
+      if (livreurProfileId) {
+        const res = await supabase
+          .from('commandes')
+          .select(`
+            *,
+            clients (nom, telephone, adresse),
+            commande_items (
+              quantite,
+              produits (nom)
+            )
+          `)
+          .eq('livreur_id', livreurProfileId)
+          .in('statut', ['en_livraison'])
+          .order('created_at', { ascending: true });
+        mesLivraisonsData = res.data;
+        error2 = res.error;
+      } else {
+        const res = await supabase
+          .from('commandes')
+          .select(`
+            *,
+            clients (nom, telephone, adresse),
+            commande_items (
+              quantite,
+              produits (nom)
+            )
+          `)
+          .is('livreur_id', null)
+          .in('statut', ['en_livraison'])
+          .order('created_at', { ascending: true });
+        mesLivraisonsData = res.data;
+        error2 = res.error;
+      }
 
       if (error1) throw error1;
       if (error2) throw error2;
@@ -118,12 +151,13 @@ const LivreurDashboard = () => {
 
   const accepterLivraison = async (commandeId: string) => {
     try {
+      let updateData: any = { statut: 'en_livraison' };
+      if (livreurProfileId) {
+        updateData.livreur_id = livreurProfileId;
+      }
       const { error } = await supabase
         .from('commandes')
-        .update({ 
-          livreur_id: profile.id,
-          statut: 'en_livraison'
-        })
+        .update(updateData)
         .eq('id', commandeId);
 
       if (error) throw error;
