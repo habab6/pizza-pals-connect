@@ -49,6 +49,7 @@ export type Database = {
           prix_unitaire: number
           produit_id: string
           quantite: number
+          remarque: string | null
         }
         Insert: {
           commande_id: string
@@ -57,6 +58,7 @@ export type Database = {
           prix_unitaire: number
           produit_id: string
           quantite?: number
+          remarque?: string | null
         }
         Update: {
           commande_id?: string
@@ -65,6 +67,7 @@ export type Database = {
           prix_unitaire?: number
           produit_id?: string
           quantite?: number
+          remarque?: string | null
         }
         Relationships: [
           {
