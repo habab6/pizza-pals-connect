@@ -41,12 +41,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Récupérer le profil utilisateur
-          const { data: profileData } = await supabase
+          // Récupérer le profil utilisateur avec .maybeSingle() pour éviter l'erreur si le profil n'existe pas
+          let { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
+          
+          // Si le profil n'existe pas, le créer depuis les métadonnées
+          if (!profileData && !profileError) {
+            const userData = session.user.user_metadata;
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: session.user.id,
+                nom: userData?.nom || userData?.email?.split('@')[0] || 'Utilisateur',
+                role: userData?.role || 'caissier'
+              })
+              .select()
+              .single();
+            
+            if (!createError) {
+              profileData = newProfile;
+            }
+          }
           
           setProfile(profileData);
         } else {
@@ -58,20 +76,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // Vérifier la session existante
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
+        let { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', session.user.id)
-          .single()
-          .then(({ data: profileData }) => {
-            setProfile(profileData);
-            setLoading(false);
-          });
+          .maybeSingle();
+          
+        // Si le profil n'existe pas, le créer
+        if (!profileData && !profileError) {
+          const userData = session.user.user_metadata;
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: session.user.id,
+              nom: userData?.nom || userData?.email?.split('@')[0] || 'Utilisateur',
+              role: userData?.role || 'caissier'
+            })
+            .select()
+            .single();
+          
+          if (!createError) {
+            profileData = newProfile;
+          }
+        }
+        
+        setProfile(profileData);
+        setLoading(false);
       } else {
         setLoading(false);
       }
