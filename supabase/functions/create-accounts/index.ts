@@ -46,25 +46,37 @@ serve(async (req) => {
       })
 
       if (userError) {
-        console.error(`Erreur création utilisateur ${account.email}:`, userError)
-        results.push({ email: account.email, success: false, error: userError.message })
-        continue
+        const msg = (userError.message || '').toLowerCase();
+        const alreadyExists = msg.includes('already') || msg.includes('exists') || msg.includes('registered');
+        if (alreadyExists) {
+          console.log(`Utilisateur ${account.email} existe déjà, on continue`)
+          results.push({ email: account.email, success: true })
+        } else {
+          console.error(`Erreur création utilisateur ${account.email}:`, userError)
+          results.push({ email: account.email, success: false, error: userError.message })
+          continue
+        }
       }
 
-      // Créer le profil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: userData.user.id,
-          nom: account.nom,
-          role: account.role
-        })
+      // Créer le profil si on a l'id utilisateur (nouveau compte)
+      if (userData?.user?.id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userData.user.id,
+            nom: account.nom,
+            role: account.role
+          })
 
-      if (profileError) {
-        console.error(`Erreur création profil ${account.email}:`, profileError)
-        results.push({ email: account.email, success: false, error: profileError.message })
+        if (profileError) {
+          console.error(`Erreur création profil ${account.email}:`, profileError)
+          results.push({ email: account.email, success: false, error: profileError.message })
+        } else {
+          console.log(`Compte ${account.email} créé avec succès`)
+          results.push({ email: account.email, success: true })
+        }
       } else {
-        console.log(`Compte ${account.email} créé avec succès`)
+        console.log(`Profil non créé pour ${account.email} (utilisateur existant)`) 
         results.push({ email: account.email, success: true })
       }
     }
