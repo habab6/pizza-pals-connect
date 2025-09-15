@@ -43,7 +43,7 @@ const Auth = () => {
     if (!email || !password) {
       toast({
         title: "Erreur",
-        description: "Email et mot de passe requis",
+        description: "Nom d'utilisateur et mot de passe requis",
         variant: "destructive",
       });
       return;
@@ -52,8 +52,11 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Ajouter @app si l'utilisateur n'a tapé que le nom simple
+      const fullEmail = email.includes('@') ? email : `${email}@app`;
+      
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: fullEmail,
         password,
       });
 
@@ -70,7 +73,7 @@ const Auth = () => {
       console.error("Erreur connexion:", error);
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Email ou mot de passe incorrect",
+        description: error.message || "Nom d'utilisateur ou mot de passe incorrect",
         variant: "destructive",
       });
     } finally {
@@ -90,11 +93,11 @@ const Auth = () => {
         <CardContent className="space-y-6">
           <form onSubmit={handleSignIn} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Nom d'utilisateur</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="nom@dolceitalia.fr"
+                type="text"
+                placeholder="caisse, cuisine ou livraison"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
@@ -124,9 +127,9 @@ const Auth = () => {
               Comptes disponibles:
             </div>
             <div className="space-y-1 text-xs text-gray-500 mb-4">
-              <div>• caisse@dolceitalia.fr (Caissier)</div>
-              <div>• cuisine@dolceitalia.fr (Pizzaiolo)</div>
-              <div>• livraison@dolceitalia.fr (Livreur)</div>
+              <div>• caisse (Caissier)</div>
+              <div>• cuisine (Pizzaiolo)</div>
+              <div>• livraison (Livreur)</div>
               <div className="font-medium">Mot de passe: Dolce961</div>
             </div>
             

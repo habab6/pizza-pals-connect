@@ -24,9 +24,9 @@ serve(async (req) => {
     })
 
     const accounts = [
-      { email: 'caisse@dolceitalia.fr', nom: 'Caissier', role: 'caissier' },
-      { email: 'cuisine@dolceitalia.fr', nom: 'Pizzaiolo', role: 'pizzaiolo' },
-      { email: 'livraison@dolceitalia.fr', nom: 'Livreur', role: 'livreur' }
+      { email: 'caisse@app', nom: 'caisse', role: 'caissier' },
+      { email: 'cuisine@app', nom: 'cuisine', role: 'pizzaiolo' },
+      { email: 'livraison@app', nom: 'livraison', role: 'livreur' }
     ]
 
     const results = []
