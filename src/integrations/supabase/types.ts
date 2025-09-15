@@ -88,7 +88,7 @@ export type Database = {
       }
       commandes: {
         Row: {
-          caissier_id: string
+          caissier_id: string | null
           client_id: string | null
           created_at: string
           id: string
@@ -102,7 +102,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          caissier_id: string
+          caissier_id?: string | null
           client_id?: string | null
           created_at?: string
           id?: string
@@ -116,7 +116,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          caissier_id?: string
+          caissier_id?: string | null
           client_id?: string | null
           created_at?: string
           id?: string
