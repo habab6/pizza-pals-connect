@@ -38,7 +38,7 @@ const Auth = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            nom: nom,
+            nom: nom.trim(),
             role: role
           }
         }
@@ -46,23 +46,15 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (data.user) {
-        // Créer le profil utilisateur
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: data.user.id,
-            nom: nom,
-            role: role
-          });
-
-        if (profileError) throw profileError;
-
-        toast({
-          title: "Compte créé !",
-          description: "Vérifiez votre email pour confirmer votre compte."
-        });
-      }
+      toast({
+        title: "Compte créé !",
+        description: "Connectez-vous avec vos identifiants."
+      });
+      
+      // Réinitialiser le formulaire
+      setEmail("");
+      setPassword("");
+      setNom("");
     } catch (error: any) {
       toast({
         variant: "destructive",
