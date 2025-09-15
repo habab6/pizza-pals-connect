@@ -14,16 +14,272 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          adresse: string | null
+          created_at: string
+          id: string
+          nom: string
+          telephone: string
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          telephone: string
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          telephone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      commande_items: {
+        Row: {
+          commande_id: string
+          created_at: string
+          id: string
+          prix_unitaire: number
+          produit_id: string
+          quantite: number
+        }
+        Insert: {
+          commande_id: string
+          created_at?: string
+          id?: string
+          prix_unitaire: number
+          produit_id: string
+          quantite?: number
+        }
+        Update: {
+          commande_id?: string
+          created_at?: string
+          id?: string
+          prix_unitaire?: number
+          produit_id?: string
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commande_items_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commande_items_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commandes: {
+        Row: {
+          caissier_id: string
+          client_id: string | null
+          created_at: string
+          id: string
+          livreur_id: string | null
+          notes: string | null
+          numero_commande: string
+          pizzaiolo_id: string | null
+          statut: Database["public"]["Enums"]["order_status"]
+          total: number
+          type_commande: Database["public"]["Enums"]["order_type"]
+          updated_at: string
+        }
+        Insert: {
+          caissier_id: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          livreur_id?: string | null
+          notes?: string | null
+          numero_commande: string
+          pizzaiolo_id?: string | null
+          statut?: Database["public"]["Enums"]["order_status"]
+          total: number
+          type_commande: Database["public"]["Enums"]["order_type"]
+          updated_at?: string
+        }
+        Update: {
+          caissier_id?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          livreur_id?: string | null
+          notes?: string | null
+          numero_commande?: string
+          pizzaiolo_id?: string | null
+          statut?: Database["public"]["Enums"]["order_status"]
+          total?: number
+          type_commande?: Database["public"]["Enums"]["order_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commandes_caissier_id_fkey"
+            columns: ["caissier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_livreur_id_fkey"
+            columns: ["livreur_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_pizzaiolo_id_fkey"
+            columns: ["pizzaiolo_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          commande_id: string | null
+          created_at: string
+          id: string
+          lu: boolean
+          message: string
+          titre: string
+          user_id: string
+        }
+        Insert: {
+          commande_id?: string | null
+          created_at?: string
+          id?: string
+          lu?: boolean
+          message: string
+          titre: string
+          user_id: string
+        }
+        Update: {
+          commande_id?: string | null
+          created_at?: string
+          id?: string
+          lu?: boolean
+          message?: string
+          titre?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produits: {
+        Row: {
+          categorie: Database["public"]["Enums"]["product_category"]
+          created_at: string
+          disponible: boolean
+          id: string
+          nom: string
+          prix: number
+          updated_at: string
+        }
+        Insert: {
+          categorie: Database["public"]["Enums"]["product_category"]
+          created_at?: string
+          disponible?: boolean
+          id?: string
+          nom: string
+          prix: number
+          updated_at?: string
+        }
+        Update: {
+          categorie?: Database["public"]["Enums"]["product_category"]
+          created_at?: string
+          disponible?: boolean
+          id?: string
+          nom?: string
+          prix?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      order_status:
+        | "nouveau"
+        | "en_preparation"
+        | "pret"
+        | "en_livraison"
+        | "livre"
+        | "termine"
+      order_type: "sur_place" | "a_emporter" | "livraison"
+      product_category: "pizzas" | "pates" | "desserts" | "boissons"
+      user_role: "caissier" | "pizzaiolo" | "livreur"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +406,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: [
+        "nouveau",
+        "en_preparation",
+        "pret",
+        "en_livraison",
+        "livre",
+        "termine",
+      ],
+      order_type: ["sur_place", "a_emporter", "livraison"],
+      product_category: ["pizzas", "pates", "desserts", "boissons"],
+      user_role: ["caissier", "pizzaiolo", "livreur"],
+    },
   },
 } as const
