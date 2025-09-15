@@ -20,6 +20,7 @@ interface Produit {
 interface CartItem {
   produit: Produit;
   quantite: number;
+  remarque?: string;
 }
 
 interface Client {
@@ -113,7 +114,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             : item
         );
       }
-      return [...prev, { produit, quantite: 1 }];
+      return [...prev, { produit, quantite: 1, remarque: '' }];
     });
   };
 
@@ -145,17 +146,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       return;
     }
 
-    // Vérifier les infos client pour livraison
-    if (typeCommande === 'livraison') {
-      if (!clientInfo.nom.trim() || !clientInfo.telephone.trim() || !clientInfo.adresse.trim()) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Nom, téléphone et adresse requis pour une livraison"
-        });
-        return;
-      }
-    } else if (typeCommande !== 'sur_place' && !clientInfo.nom.trim()) {
+    // Vérifier les infos client
+    if (!clientInfo.nom.trim()) {
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -164,13 +156,24 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       return;
     }
 
+    if (typeCommande === 'livraison') {
+      if (!clientInfo.telephone.trim() || !clientInfo.adresse.trim()) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Téléphone et adresse requis pour une livraison"
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
       let clientId = null;
 
-      // Créer ou récupérer le client si nécessaire
-      if (typeCommande === 'livraison' || (typeCommande === 'a_emporter' && clientInfo.nom.trim())) {
+      // Créer ou récupérer le client
+      if (clientInfo.nom.trim()) {
         if (clientExistant) {
           clientId = clientExistant.id;
           // Mettre à jour les infos si nécessaire
@@ -185,7 +188,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             .from('clients')
             .insert({
               nom: clientInfo.nom.trim(),
-              telephone: clientInfo.telephone.trim(),
+              telephone: typeCommande === 'livraison' ? clientInfo.telephone.trim() : '',
               adresse: typeCommande === 'livraison' ? clientInfo.adresse.trim() : null
             })
             .select()
@@ -202,10 +205,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         .insert({
           type_commande: typeCommande,
           client_id: clientId,
-          caissier_id: '00000000-0000-0000-0000-000000000000', // ID fictif pour le caissier
+          caissier_id: null,
           total: calculerTotal(),
           notes: notes.trim() || null,
-          numero_commande: ''  // Auto-généré par le trigger
+          numero_commande: Date.now().toString()  // Simple numéro basé sur timestamp
         })
         .select()
         .single();
@@ -217,7 +220,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         commande_id: commande.id,
         produit_id: item.produit.id,
         quantite: item.quantite,
-        prix_unitaire: item.produit.prix
+        prix_unitaire: item.produit.prix,
+        remarque: item.remarque || null
       }));
 
       const { error: itemsError } = await supabase
@@ -280,8 +284,70 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             </CardContent>
           </Card>
 
-          {/* Infos client si nécessaire */}
-          {(typeCommande === 'livraison' || typeCommande === 'a_emporter') && (
+          {/* Infos client */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations client</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="nom">Nom du client *</Label>
+                <Input
+                  id="nom"
+                  placeholder="Nom du client"
+                  value={clientInfo.nom}
+                  onChange={(e) => setClientInfo({...clientInfo, nom: e.target.value})}
+                  required
+                />
+              </div>
+
+              {typeCommande === 'livraison' && (
+                <>
+                  <div>
+                    <Label htmlFor="telephone">Téléphone *</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        id="telephone"
+                        placeholder="Ex: 0123456789"
+                        value={clientInfo.telephone}
+                        onChange={(e) => {
+                          setClientInfo({...clientInfo, telephone: e.target.value});
+                          searchClient(e.target.value);
+                        }}
+                        className="flex-1"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => searchClient(clientInfo.telephone)}
+                      >
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {clientExistant && (
+                      <p className="text-sm text-green-600 mt-1">Client trouvé: {clientExistant.nom}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="adresse">Adresse de livraison *</Label>
+                    <Textarea
+                      id="adresse"
+                      placeholder="Adresse complète"
+                      value={clientInfo.adresse}
+                      onChange={(e) => setClientInfo({...clientInfo, adresse: e.target.value})}
+                      rows={2}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Infos client livraison supplémentaires */}
+          {false && (
             <Card>
               <CardHeader>
                 <CardTitle>Informations client</CardTitle>
@@ -401,30 +467,45 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                   <p className="text-gray-500 text-center py-4">Panier vide</p>
                 ) : (
                   panier.map((item) => (
-                    <div key={item.produit.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex-1">
-                        <h5 className="text-sm font-medium">{item.produit.nom}</h5>
-                        <p className="text-xs text-gray-600">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
+                    <div key={item.produit.id} className="p-2 bg-gray-50 rounded space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h5 className="text-sm font-medium">{item.produit.nom}</h5>
+                          <p className="text-xs text-gray-600">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => modifierQuantite(item.produit.id, -1)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="text-sm w-8 text-center">{item.quantite}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => modifierQuantite(item.produit.id, 1)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => modifierQuantite(item.produit.id, -1)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="text-sm w-8 text-center">{item.quantite}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => modifierQuantite(item.produit.id, 1)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Textarea
+                        placeholder="Remarque pour ce produit..."
+                        value={item.remarque || ''}
+                        onChange={(e) => {
+                          setPanier(prev => prev.map(p => 
+                            p.produit.id === item.produit.id 
+                              ? { ...p, remarque: e.target.value }
+                              : p
+                          ));
+                        }}
+                        rows={1}
+                        className="text-xs"
+                      />
                     </div>
                   ))
                 )}
