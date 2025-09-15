@@ -31,15 +31,33 @@ const CaissierDashboard = () => {
   useEffect(() => {
     fetchCommandes();
     
-    // Écouter les mises à jour en temps réel
+    // Écoute des changements en temps réel pour toutes les tables
     const channel = supabase
-      .channel('commandes-updates')
+      .channel('caissier-realtime')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'commandes'
+        },
+        () => fetchCommandes()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'commande_items'
+        },
+        () => fetchCommandes()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients'
         },
         () => fetchCommandes()
       )

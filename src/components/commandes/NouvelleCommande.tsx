@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatProduitNom } from "@/utils/formatters";
 import { Plus, Minus, Search, Phone, MapPin } from "lucide-react";
 
 interface Produit {
@@ -453,7 +454,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                 {produitsFiltrés.map(produit => (
                   <div key={produit.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
-                      <h4 className="font-medium">{produit.nom}</h4>
+                      <h4 className="font-medium">{formatProduitNom(produit.nom, produit.categorie)}</h4>
                       <p className="text-red-600 font-semibold">{produit.prix.toFixed(2)}€</p>
                     </div>
                     <Button
@@ -485,7 +486,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                     <div key={item.produit.id} className="p-2 bg-gray-50 rounded space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h5 className="text-sm font-medium">{item.produit.nom}</h5>
+                          <h5 className="text-sm font-medium">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
                           <p className="text-xs text-gray-600">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
                         </div>
                         <div className="flex items-center space-x-1">

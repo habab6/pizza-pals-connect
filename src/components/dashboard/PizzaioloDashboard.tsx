@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatProduitNom } from "@/utils/formatters";
 
 interface Commande {
   id: string;
@@ -21,6 +22,7 @@ interface Commande {
     quantite: number;
     produits: {
       nom: string;
+      categorie: string;
     };
   }>;
 }
@@ -33,15 +35,33 @@ const PizzaioloDashboard = () => {
   useEffect(() => {
     fetchCommandes();
     
-    // Écouter les mises à jour en temps réel
+    // Écoute des changements en temps réel pour toutes les tables
     const channel = supabase
-      .channel('pizzaiolo-commandes')
+      .channel('pizzaiolo-realtime')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'commandes'
+        },
+        () => fetchCommandes()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'commande_items'
+        },
+        () => fetchCommandes()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients'
         },
         () => fetchCommandes()
       )
@@ -61,7 +81,7 @@ const PizzaioloDashboard = () => {
           clients (nom),
           commande_items (
             quantite,
-            produits (nom)
+            produits (nom, categorie)
           )
         `)
         .in('statut', ['nouveau', 'en_preparation', 'pret'])
@@ -238,7 +258,7 @@ const PizzaioloDashboard = () => {
                   <div className="space-y-1">
                     {commande.commande_items.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span>{item.quantite}x {item.produits.nom}</span>
+                        <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
                       </div>
                     ))}
                   </div>
