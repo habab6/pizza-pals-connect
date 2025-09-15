@@ -173,7 +173,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       let clientId = null;
 
       // Créer ou récupérer le client
-      if (clientInfo.nom.trim()) {
+      if (typeCommande === 'livraison' && clientInfo.nom.trim()) {
         if (clientExistant) {
           clientId = clientExistant.id;
           // Mettre à jour les infos si nécessaire
@@ -184,12 +184,13 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
               .eq('id', clientExistant.id);
           }
         } else {
+          // Créer un nouveau client seulement pour les livraisons
           const { data: nouveauClient, error: clientError } = await supabase
             .from('clients')
             .insert({
               nom: clientInfo.nom.trim(),
-              telephone: typeCommande === 'livraison' ? clientInfo.telephone.trim() : '',
-              adresse: typeCommande === 'livraison' ? clientInfo.adresse.trim() : null
+              telephone: clientInfo.telephone.trim(),
+              adresse: clientInfo.adresse.trim()
             })
             .select()
             .single();
@@ -197,6 +198,20 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           if (clientError) throw clientError;
           clientId = nouveauClient.id;
         }
+      } else if (typeCommande !== 'livraison' && clientInfo.nom.trim()) {
+        // Pour sur place et à emporter, créer un client sans téléphone ni adresse
+        const { data: nouveauClient, error: clientError } = await supabase
+          .from('clients')
+          .insert({
+            nom: clientInfo.nom.trim(),
+            telephone: `client_${Date.now()}`, // Téléphone unique fictif
+            adresse: null
+          })
+          .select()
+          .single();
+
+        if (clientError) throw clientError;
+        clientId = nouveauClient.id;
       }
 
       // Créer la commande
@@ -205,10 +220,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         .insert({
           type_commande: typeCommande,
           client_id: clientId,
-          caissier_id: null,
+          caissier_id: null, // Pas d'authentification
           total: calculerTotal(),
           notes: notes.trim() || null,
-          numero_commande: Date.now().toString()  // Simple numéro basé sur timestamp
+          numero_commande: Date.now().toString()
         })
         .select()
         .single();
