@@ -1,30 +1,23 @@
-import { useAuth } from "@/hooks/useAuth";
+import { useParams, useNavigate } from "react-router-dom";
 import CaissierDashboard from "@/components/dashboard/CaissierDashboard";
 import PizzaioloDashboard from "@/components/dashboard/PizzaioloDashboard";
 import LivreurDashboard from "@/components/dashboard/LivreurDashboard";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
-import { LogOut, Pizza } from "lucide-react";
+import { ArrowLeft, Pizza } from "lucide-react";
 
 const Dashboard = () => {
-  const { profile, signOut, loading } = useAuth();
+  const { role } = useParams<{ role: string }>();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
-      </div>
-    );
-  }
-
-  if (!profile) {
+  if (!role || !['caissier', 'pizzaiolo', 'livreur'].includes(role)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-800 mb-4">Profil introuvable</h1>
-          <p className="text-gray-600 mb-4">Veuillez vous reconnecter.</p>
-          <Button onClick={signOut} className="bg-red-600 hover:bg-red-700">
-            Se reconnecter
+          <h1 className="text-2xl font-bold text-red-800 mb-4">Rôle invalide</h1>
+          <p className="text-gray-600 mb-4">Veuillez sélectionner un rôle valide.</p>
+          <Button onClick={() => navigate("/")} className="bg-red-600 hover:bg-red-700">
+            Retour à l'accueil
           </Button>
         </div>
       </div>
@@ -52,18 +45,18 @@ const Dashboard = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-red-800">Dolce Italia</h1>
-                <p className="text-sm text-gray-600">{getRoleName(profile.role)} - {profile.nom}</p>
+                <p className="text-sm text-gray-600">{getRoleName(role)}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <NotificationBell />
               <Button
                 variant="outline"
-                onClick={signOut}
+                onClick={() => navigate("/")}
                 className="flex items-center space-x-2"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Déconnexion</span>
+                <ArrowLeft className="h-4 w-4" />
+                <span>Retour</span>
               </Button>
             </div>
           </div>
@@ -72,9 +65,9 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {profile.role === 'caissier' && <CaissierDashboard />}
-        {profile.role === 'pizzaiolo' && <PizzaioloDashboard />}
-        {profile.role === 'livreur' && <LivreurDashboard />}
+        {role === 'caissier' && <CaissierDashboard />}
+        {role === 'pizzaiolo' && <PizzaioloDashboard />}
+        {role === 'livreur' && <LivreurDashboard />}
       </main>
     </div>
   );

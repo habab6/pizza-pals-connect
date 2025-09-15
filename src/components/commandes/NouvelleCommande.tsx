@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { Plus, Minus, Search, Phone, MapPin } from "lucide-react";
 
 interface Produit {
@@ -49,7 +48,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [categorieActive, setCategorieActive] = useState<string>('pizzas');
   
-  const { profile } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -147,15 +145,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       return;
     }
 
-    if (!profile) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Profil utilisateur non trouvé"
-      });
-      return;
-    }
-
     // Vérifier les infos client pour livraison
     if (typeCommande === 'livraison') {
       if (!clientInfo.nom.trim() || !clientInfo.telephone.trim() || !clientInfo.adresse.trim()) {
@@ -213,7 +202,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         .insert({
           type_commande: typeCommande,
           client_id: clientId,
-          caissier_id: profile.id,
+          caissier_id: '00000000-0000-0000-0000-000000000000', // ID fictif pour le caissier
           total: calculerTotal(),
           notes: notes.trim() || null,
           numero_commande: ''  // Auto-généré par le trigger

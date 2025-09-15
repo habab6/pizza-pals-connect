@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 interface Notification {
@@ -16,8 +15,10 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const { profile } = useAuth();
   const { toast } = useToast();
+
+  // ID fictif pour les notifications (sans auth)
+  const userId = '00000000-0000-0000-0000-000000000000';
 
   // Demander la permission pour les notifications
   const requestPermission = async () => {
@@ -65,65 +66,27 @@ export const useNotifications = () => {
     }
   };
 
-  // Charger les notifications
+  // Charger les notifications (simulé)
   const fetchNotifications = async () => {
-    if (!profile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setNotifications(data || []);
-      setUnreadCount((data || []).filter(n => !n.lu).length);
-    } catch (error) {
-      console.error('Erreur chargement notifications:', error);
-    }
+    // Sans auth, on ne charge pas vraiment les notifications
+    setNotifications([]);
+    setUnreadCount(0);
   };
 
   // Marquer une notification comme lue
   const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ lu: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, lu: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Erreur marquage lu:', error);
-    }
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, lu: true } : n)
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   // Marquer toutes les notifications comme lues
   const markAllAsRead = async () => {
-    if (!profile) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ lu: true })
-        .eq('user_id', profile.id)
-        .eq('lu', false);
-
-      if (error) throw error;
-
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, lu: true }))
-      );
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Erreur marquage tout lu:', error);
-    }
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, lu: true }))
+    );
+    setUnreadCount(0);
   };
 
   useEffect(() => {
@@ -134,45 +97,10 @@ export const useNotifications = () => {
 
     // Enregistrer le service worker
     registerServiceWorker();
-  }, []);
-
-  useEffect(() => {
-    if (!profile) return;
-
+    
+    // Charger les notifications
     fetchNotifications();
-
-    // Écouter les nouvelles notifications en temps réel
-    const channel = supabase
-      .channel('user-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${profile.id}`
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          
-          // Ajouter à la liste
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-
-          // Afficher notification locale et toast
-          showNotification(newNotification.titre, newNotification.message);
-          toast({
-            title: newNotification.titre,
-            description: newNotification.message,
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile, permission, toast]);
+  }, []);
 
   return {
     notifications,
