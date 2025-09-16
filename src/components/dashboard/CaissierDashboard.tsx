@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Clock, CheckCircle, Truck } from "lucide-react";
+import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -126,6 +126,30 @@ const CaissierDashboard = () => {
     return types[type as keyof typeof types] || type;
   };
 
+  const marquerServie = async (commandeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('commandes')
+        .update({ statut: 'termine' })
+        .eq('id', commandeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Commande servie",
+        description: "La commande a été marquée comme servie"
+      });
+
+      fetchCommandes();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de marquer la commande comme servie"
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -243,9 +267,23 @@ const CaissierDashboard = () => {
                       <span>{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex space-x-2">
+                    {(commande.type_commande === 'sur_place' || commande.type_commande === 'a_emporter') && 
+                     commande.statut === 'pret' && (
+                      <Button
+                        onClick={() => marquerServie(commande.id)}
+                        variant="default"
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <UserCheck className="h-4 w-4 mr-1" />
+                        Servie
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

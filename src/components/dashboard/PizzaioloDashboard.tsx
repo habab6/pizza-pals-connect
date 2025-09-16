@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
+import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 
 interface Commande {
   id: string;
@@ -30,6 +31,8 @@ interface Commande {
 const PizzaioloDashboard = () => {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,7 +44,22 @@ const PizzaioloDashboard = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'commandes'
+        },
+        (payload) => {
+          // Afficher la modale pour les nouvelles commandes
+          if (payload.new && payload.new.statut === 'nouveau') {
+            fetchCommandeComplete(payload.new.id);
+          }
+          fetchCommandes();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'commandes'
         },
@@ -85,6 +103,7 @@ const PizzaioloDashboard = () => {
           )
         `)
         .in('statut', ['nouveau', 'en_preparation', 'pret'])
+        .neq('statut', 'termine')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -97,6 +116,31 @@ const PizzaioloDashboard = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCommandeComplete = async (commandeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('commandes')
+        .select(`
+          *,
+          clients (nom, telephone, adresse),
+          commande_items (
+            quantite,
+            produits (nom, categorie)
+          )
+        `)
+        .eq('id', commandeId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setNouvelleCommande(data);
+        setShowModal(true);
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du chargement de la commande complète:', error);
     }
   };
 
@@ -344,6 +388,24 @@ const PizzaioloDashboard = () => {
           ))
         )}
       </div>
+
+      {/* Modale pour nouvelles commandes */}
+      <NouvelleCommandeModal
+        commande={nouvelleCommande}
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setNouvelleCommande(null);
+        }}
+        onAccept={() => {
+          if (nouvelleCommande) {
+            changerStatut(nouvelleCommande.id, 'en_preparation');
+          }
+        }}
+        title="Nouvelle commande reçue!"
+        acceptButtonText="Commencer la préparation"
+        acceptButtonIcon={ChefHat}
+      />
     </div>
   );
 };

@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Phone, MapPin, Clock, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 
 interface Commande {
   id: string;
   numero_commande: string;
+  type_commande: 'sur_place' | 'a_emporter' | 'livraison';
   statut: string;
   total: number;
   notes?: string;
@@ -23,6 +25,7 @@ interface Commande {
     quantite: number;
     produits: {
       nom: string;
+      categorie: string;
     };
   }>;
 }
@@ -31,6 +34,8 @@ const LivreurDashboard = () => {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [mesLivraisons, setMesLivraisons] = useState<Commande[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nouvelleLivraison, setNouvelleLivraison] = useState<Commande | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
   
   // Profil du livreur (si connecté)
@@ -67,7 +72,7 @@ const LivreurDashboard = () => {
           clients (nom, telephone, adresse),
           commande_items (
             quantite,
-            produits (nom)
+            produits (nom, categorie)
           )
         `)
         .eq('type_commande', 'livraison')
@@ -86,7 +91,7 @@ const LivreurDashboard = () => {
             clients (nom, telephone, adresse),
             commande_items (
               quantite,
-              produits (nom)
+              produits (nom, categorie)
             )
           `)
           .eq('livreur_id', livreurProfileId)
@@ -100,10 +105,10 @@ const LivreurDashboard = () => {
           .select(`
             *,
             clients (nom, telephone, adresse),
-            commande_items (
-              quantite,
-              produits (nom)
-            )
+           commande_items (
+             quantite,
+             produits (nom, categorie)
+           )
           `)
           .is('livreur_id', null)
           .in('statut', ['en_livraison'])
@@ -136,8 +141,19 @@ const LivreurDashboard = () => {
       .channel('livreur-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'commandes' },
-        () => fetchCommandes()
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'commandes',
+          filter: 'type_commande=eq.livraison'
+        },
+        (payload) => {
+          // Afficher la modale quand une commande passe en "pret" pour livraison
+          if (payload.new && payload.new.statut === 'pret' && payload.old && payload.old.statut !== 'pret') {
+            fetchCommandeComplete(payload.new.id);
+          }
+          fetchCommandes();
+        }
       )
       .on(
         'postgres_changes',
@@ -252,6 +268,31 @@ const LivreurDashboard = () => {
         title: "Erreur",
         description: "Impossible de marquer comme livré"
       });
+    }
+  };
+
+  const fetchCommandeComplete = async (commandeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('commandes')
+        .select(`
+          *,
+          clients (nom, telephone, adresse),
+          commande_items (
+            quantite,
+            produits (nom, categorie)
+          )
+        `)
+        .eq('id', commandeId)
+        .single();
+
+      if (error) throw error;
+      if (data && data.type_commande === 'livraison') {
+        setNouvelleLivraison(data);
+        setShowModal(true);
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du chargement de la commande complète:', error);
     }
   };
 
@@ -464,6 +505,24 @@ const LivreurDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Modale pour nouvelles livraisons */}
+      <NouvelleCommandeModal
+        commande={nouvelleLivraison}
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setNouvelleLivraison(null);
+        }}
+        onAccept={() => {
+          if (nouvelleLivraison) {
+            accepterLivraison(nouvelleLivraison.id);
+          }
+        }}
+        title="Nouvelle livraison disponible!"
+        acceptButtonText="Accepter cette livraison"
+        acceptButtonIcon={Truck}
+      />
     </div>
   );
 };
