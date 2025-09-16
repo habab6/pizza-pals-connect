@@ -274,10 +274,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const categories = [
-    { key: 'pizzas', label: '🍕 Pizzas' },
-    { key: 'pates', label: '🍝 Pâtes' },
-    { key: 'desserts', label: '🍰 Desserts' },
-    { key: 'boissons', label: '🥤 Boissons' }
+    { key: 'pizzas', label: 'Pizzas' },
+    { key: 'pates', label: 'Pâtes' },
+    { key: 'desserts', label: 'Desserts' },
+    { key: 'boissons', label: 'Boissons' }
   ];
 
   return (
