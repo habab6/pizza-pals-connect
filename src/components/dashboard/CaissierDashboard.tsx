@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
+import HistoriqueCommandes from "./HistoriqueCommandes";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Commande {
@@ -44,6 +45,7 @@ const CaissierDashboard = () => {
             adresse
           )
         `)
+        .neq('statut', 'termine')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -142,6 +144,8 @@ const CaissierDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
+        <div className="flex space-x-3">
+          <HistoriqueCommandes />
           <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
             setShowNouvelleCommande(open);
             if (!open) {
@@ -158,6 +162,7 @@ const CaissierDashboard = () => {
             <NouvelleCommande onClose={() => setShowNouvelleCommande(false)} />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats rapides */}
