@@ -164,6 +164,32 @@ const LivreurDashboard = () => {
 
       if (error) throw error;
 
+      // Récupérer le numéro de commande pour la notification
+      const { data: commandeData } = await supabase
+        .from('commandes')
+        .select('numero_commande')
+        .eq('id', commandeId)
+        .single();
+
+      // Notifier les caissiers que la livraison a été prise en charge
+      const { data: caissiers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'caissier');
+
+      if (caissiers && caissiers.length > 0 && commandeData) {
+        await supabase
+          .from('notifications')
+          .insert(
+            caissiers.map(caissier => ({
+              user_id: caissier.id,
+              commande_id: commandeId,
+              titre: "Livraison en cours",
+              message: `Commande ${commandeData.numero_commande} prise en charge par un livreur`
+            }))
+          );
+      }
+
       toast({
         title: "Livraison acceptée",
         description: "La commande a été assignée à vous"
@@ -188,15 +214,35 @@ const LivreurDashboard = () => {
 
       if (error) throw error;
 
+      // Récupérer le numéro de commande pour la notification
+      const { data: commandeData } = await supabase
+        .from('commandes')
+        .select('numero_commande')
+        .eq('id', commandeId)
+        .single();
+
+      // Notifier les caissiers que la livraison est terminée
+      const { data: caissiers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'caissier');
+
+      if (caissiers && caissiers.length > 0 && commandeData) {
+        await supabase
+          .from('notifications')
+          .insert(
+            caissiers.map(caissier => ({
+              user_id: caissier.id,
+              commande_id: commandeId,
+              titre: "Livraison terminée",
+              message: `Commande ${commandeData.numero_commande} livrée avec succès`
+            }))
+          );
+      }
+
       toast({
         title: "Livraison terminée",
         description: "La commande a été marquée comme livrée"
-      });
-
-      // Notification pour le caissier (simulée)
-      toast({
-        title: "Notification envoyée",
-        description: "Le caissier a été notifié de la livraison"
       });
 
       fetchCommandes();
