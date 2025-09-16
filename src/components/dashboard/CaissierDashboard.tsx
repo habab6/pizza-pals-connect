@@ -142,9 +142,9 @@ const CaissierDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
-        <div className="flex space-x-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
+        <div className="flex space-x-2 sm:space-x-3">
           <HistoriqueCommandes />
           <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
             setShowNouvelleCommande(open);
@@ -154,11 +154,11 @@ const CaissierDashboard = () => {
           }}>
            <DialogTrigger asChild>
              <Button className="bg-red-600 hover:bg-red-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle commande
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Nouvelle commande</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] overflow-y-auto">
             <NouvelleCommande onClose={() => setShowNouvelleCommande(false)} />
           </DialogContent>
         </Dialog>
@@ -166,7 +166,7 @@ const CaissierDashboard = () => {
       </div>
 
       {/* Stats rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -221,22 +221,24 @@ const CaissierDashboard = () => {
               <p className="text-center text-gray-500 py-8">Aucune commande pour le moment</p>
             ) : (
               commandes.map((commande) => (
-                <div key={commande.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={commande.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-3 sm:gap-0">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-2">
-                      <h3 className="font-semibold text-lg">{commande.numero_commande}</h3>
-                      {getStatusBadge(commande.statut)}
-                      <Badge variant="outline">{getTypeCommande(commande.type_commande)}</Badge>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-2 gap-1 sm:gap-0">
+                      <h3 className="font-semibold text-base md:text-lg">{commande.numero_commande}</h3>
+                      <div className="flex items-center space-x-2">
+                        {getStatusBadge(commande.statut)}
+                        <Badge variant="outline" className="text-xs">{getTypeCommande(commande.type_commande)}</Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span>Total: {commande.total.toFixed(2)}€</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs md:text-sm text-gray-600 gap-1 sm:gap-0">
+                      <span className="font-medium">Total: {commande.total.toFixed(2)}€</span>
                       {commande.clients && (
                         <span>Client: {commande.clients.nom}</span>
                       )}
-                      <span>{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
+                      <span className="text-xs">{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 justify-end sm:justify-start">
                     {(commande.type_commande === 'sur_place' || commande.type_commande === 'a_emporter') && 
                      commande.statut === 'pret' && (
                       <Button

@@ -125,8 +125,8 @@ const HistoriqueCommandes = () => {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" className="flex items-center space-x-2">
-          <History className="h-4 w-4" />
-          <span>Historique</span>
+          <History className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Historique</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-6xl max-h-[90vh]">

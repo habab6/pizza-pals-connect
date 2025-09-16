@@ -281,16 +281,16 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Nouvelle commande</h2>
+    <div className="p-3 md:p-6 max-w-6xl mx-auto">
+      <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Nouvelle commande</h2>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
         {/* Menu des produits */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="xl:col-span-2 space-y-4">
           {/* Type de commande */}
           <Card>
-            <CardHeader>
-              <CardTitle>Type de commande</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Type de commande</CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={typeCommande} onValueChange={(value: any) => setTypeCommande(value)}>
@@ -308,8 +308,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
           {/* Infos client */}
           <Card>
-            <CardHeader>
-              <CardTitle>Informations client</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Informations client</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -429,26 +429,26 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
           {/* Menu */}
           <Card>
-            <CardHeader>
-              <CardTitle>Menu</CardTitle>
-              <div className="flex space-x-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Menu</CardTitle>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <Input
                   placeholder="Rechercher un produit..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
+                  className="w-full sm:max-w-sm"
                 />
               </div>
             </CardHeader>
             <CardContent>
               {/* Catégories */}
-              <div className="flex space-x-2 mb-4 overflow-x-auto">
+              <div className="grid grid-cols-2 sm:flex sm:space-x-2 gap-2 sm:gap-0 mb-4 overflow-x-auto">
                 {categories.map(cat => (
                   <Button
                     key={cat.key}
                     variant={categorieActive === cat.key ? "default" : "outline"}
                     onClick={() => setCategorieActive(cat.key)}
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap text-sm"
                   >
                     {cat.label}
                   </Button>
@@ -456,7 +456,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
               </div>
 
               {/* Produits */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-3 max-h-80 md:max-h-96 overflow-y-auto">
                 {produitsFiltrés.map(produit => {
                   const quantiteInPanier = getQuantiteInPanier(produit.id);
                   const isSelected = quantiteInPanier > 0;
@@ -497,11 +497,11 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         {/* Panier */}
         <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Panier ({panier.length} articles)</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Panier ({panier.length} articles)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-48 md:max-h-64 overflow-y-auto">
                 {panier.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">Panier vide</p>
                 ) : (
@@ -548,15 +548,16 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
           {/* Notes */}
           <Card>
-            <CardHeader>
-              <CardTitle>Notes (optionnel)</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base md:text-lg">Notes (optionnel)</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
                 placeholder="Instructions spéciales..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={3}
+                rows={2}
+                className="text-sm"
               />
             </CardContent>
           </Card>
@@ -566,14 +567,14 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             <Button
               onClick={validerCommande}
               disabled={isLoading || panier.length === 0}
-              className="w-full bg-red-600 hover:bg-red-700"
+              className="w-full bg-red-600 hover:bg-red-700 h-10 md:h-11"
             >
               {isLoading ? "Création..." : "Valider la commande"}
             </Button>
             <Button
               onClick={onClose}
               variant="outline"
-              className="w-full"
+              className="w-full h-10 md:h-11"
             >
               Annuler
             </Button>
