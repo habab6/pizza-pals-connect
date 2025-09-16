@@ -166,7 +166,7 @@ const CaissierDashboard = () => {
       </div>
 
       {/* Stats rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -205,22 +205,6 @@ const CaissierDashboard = () => {
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Aujourd'hui</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {commandes.filter(c => 
-                    new Date(c.created_at).toDateString() === new Date().toDateString()
-                  ).length}
-                </p>
-              </div>
-              <Eye className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
