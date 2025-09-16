@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Phone, MapPin, Clock, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 
 interface Commande {
@@ -133,38 +134,15 @@ const LivreurDashboard = () => {
     }
   }, [livreurProfileId, toast]);
 
+  // Auto-refresh toutes les secondes
+  useAutoRefresh({ 
+    refreshFunction: fetchCommandes,
+    intervalMs: 1000,
+    enabled: true
+  });
+
   useEffect(() => {
     fetchCommandes();
-
-    // Écouter les mises à jour en temps réel pour toutes les tables
-    const channel = supabase
-      .channel('livreur-realtime')
-      .on(
-        'postgres_changes',
-        { 
-          event: 'UPDATE', 
-          schema: 'public', 
-          table: 'commandes',
-          filter: 'type_commande=eq.livraison'
-        },
-        (payload) => {
-          // Afficher la modale quand une commande passe en "pret" pour livraison
-          if (payload.new && payload.new.statut === 'pret' && payload.old && payload.old.statut !== 'pret') {
-            fetchCommandeComplete(payload.new.id);
-          }
-          fetchCommandes();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'commande_items' },
-        () => fetchCommandes()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchCommandes]);
 
   const accepterLivraison = async (commandeId: string) => {
@@ -179,32 +157,6 @@ const LivreurDashboard = () => {
         .eq('id', commandeId);
 
       if (error) throw error;
-
-      // Récupérer le numéro de commande pour la notification
-      const { data: commandeData } = await supabase
-        .from('commandes')
-        .select('numero_commande')
-        .eq('id', commandeId)
-        .single();
-
-      // Notifier les caissiers que la livraison a été prise en charge
-      const { data: caissiers } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'caissier');
-
-      if (caissiers && caissiers.length > 0 && commandeData) {
-        await supabase
-          .from('notifications')
-          .insert(
-            caissiers.map(caissier => ({
-              user_id: caissier.id,
-              commande_id: commandeId,
-              titre: "Livraison en cours",
-              message: `Commande ${commandeData.numero_commande} prise en charge par un livreur`
-            }))
-          );
-      }
 
       toast({
         title: "Livraison acceptée",
@@ -229,32 +181,6 @@ const LivreurDashboard = () => {
         .eq('id', commandeId);
 
       if (error) throw error;
-
-      // Récupérer le numéro de commande pour la notification
-      const { data: commandeData } = await supabase
-        .from('commandes')
-        .select('numero_commande')
-        .eq('id', commandeId)
-        .single();
-
-      // Notifier les caissiers que la livraison est terminée
-      const { data: caissiers } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'caissier');
-
-      if (caissiers && caissiers.length > 0 && commandeData) {
-        await supabase
-          .from('notifications')
-          .insert(
-            caissiers.map(caissier => ({
-              user_id: caissier.id,
-              commande_id: commandeId,
-              titre: "Livraison terminée",
-              message: `Commande ${commandeData.numero_commande} livrée avec succès`
-            }))
-          );
-      }
 
       toast({
         title: "Livraison terminée",

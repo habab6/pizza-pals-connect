@@ -2,7 +2,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import CaissierDashboard from "@/components/dashboard/CaissierDashboard";
 import PizzaioloDashboard from "@/components/dashboard/PizzaioloDashboard";
 import LivreurDashboard from "@/components/dashboard/LivreurDashboard";
-import NotificationBell from "@/components/notifications/NotificationBell";
 import InstallPWAButton from "@/components/pwa/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pizza } from "lucide-react";
@@ -51,7 +50,6 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center space-x-3">
               <InstallPWAButton />
-              <NotificationBell />
               <Button
                 variant="outline"
                 onClick={() => navigate("/")}

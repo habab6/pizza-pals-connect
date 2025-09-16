@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
@@ -27,46 +28,6 @@ const CaissierDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showNouvelleCommande, setShowNouvelleCommande] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchCommandes();
-    
-    // Écoute des changements en temps réel pour toutes les tables
-    const channel = supabase
-      .channel('caissier-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'commandes'
-        },
-        () => fetchCommandes()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'commande_items'
-        },
-        () => fetchCommandes()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clients'
-        },
-        () => fetchCommandes()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const fetchCommandes = async () => {
     try {
@@ -94,6 +55,17 @@ const CaissierDashboard = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh toutes les secondes
+  useAutoRefresh({ 
+    refreshFunction: fetchCommandes,
+    intervalMs: 1000,
+    enabled: true
+  });
+
+  useEffect(() => {
+    fetchCommandes();
+  }, []);
 
   const getStatusBadge = (statut: string) => {
     const statusConfig = {

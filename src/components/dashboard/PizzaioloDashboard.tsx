@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { formatProduitNom } from "@/utils/formatters";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 
@@ -35,61 +36,6 @@ const PizzaioloDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchCommandes();
-    
-    // Écoute des changements en temps réel pour toutes les tables
-    const channel = supabase
-      .channel('pizzaiolo-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'commandes'
-        },
-        (payload) => {
-          // Afficher la modale pour les nouvelles commandes
-          if (payload.new && payload.new.statut === 'nouveau') {
-            fetchCommandeComplete(payload.new.id);
-          }
-          fetchCommandes();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'commandes'
-        },
-        () => fetchCommandes()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'commande_items'
-        },
-        () => fetchCommandes()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clients'
-        },
-        () => fetchCommandes()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const fetchCommandes = async () => {
     try {
       const { data, error } = await supabase
@@ -118,6 +64,17 @@ const PizzaioloDashboard = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh toutes les secondes
+  useAutoRefresh({ 
+    refreshFunction: fetchCommandes,
+    intervalMs: 1000,
+    enabled: true
+  });
+
+  useEffect(() => {
+    fetchCommandes();
+  }, []);
 
   const fetchCommandeComplete = async (commandeId: string) => {
     try {
@@ -157,58 +114,6 @@ const PizzaioloDashboard = () => {
         title: "Statut mis à jour",
         description: `Commande marquée comme ${nouveauStatut.replace('_', ' ')}`
       });
-
-      // Notifications selon le statut et type de commande
-      if (nouveauStatut === 'pret') {
-        // Récupérer les infos de la commande pour connaître le type
-        const { data: commandeData } = await supabase
-          .from('commandes')
-          .select('type_commande, numero_commande')
-          .eq('id', commandeId)
-          .single();
-
-        if (commandeData) {
-          // Notification pour le caissier (toujours)
-          const { data: caissiers } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('role', 'caissier');
-
-          if (caissiers && caissiers.length > 0) {
-            await supabase
-              .from('notifications')
-              .insert(
-                caissiers.map(caissier => ({
-                  user_id: caissier.id,
-                  commande_id: commandeId,
-                  titre: "Commande prête",
-                  message: `Commande ${commandeData.numero_commande} prête pour récupération`
-                }))
-              );
-          }
-
-          // Si c'est une livraison, notifier les livreurs
-          if (commandeData.type_commande === 'livraison') {
-            const { data: livreurs } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('role', 'livreur');
-
-            if (livreurs && livreurs.length > 0) {
-              await supabase
-                .from('notifications')
-                .insert(
-                  livreurs.map(livreur => ({
-                    user_id: livreur.id,
-                    commande_id: commandeId,
-                    titre: "Livraison disponible",
-                    message: `Commande ${commandeData.numero_commande} prête pour livraison`
-                  }))
-                );
-            }
-          }
-        }
-      }
     } catch (error: any) {
       toast({
         variant: "destructive",

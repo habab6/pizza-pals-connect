@@ -250,24 +250,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
       if (itemsError) throw itemsError;
 
-      // Notifier les pizzaiolos d'une nouvelle commande
-      const { data: pizzaiolos } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'pizzaiolo');
-
-      if (pizzaiolos && pizzaiolos.length > 0) {
-        await supabase
-          .from('notifications')
-          .insert(
-            pizzaiolos.map((p: any) => ({
-              user_id: p.id,
-              commande_id: commande.id,
-              titre: 'Nouvelle commande',
-              message: `Commande ${commande.numero_commande} à préparer`
-            }))
-          );
-      }
+      // Les pizzaiolos verront automatiquement la nouvelle commande via le rafraîchissement automatique
 
       toast({
         title: "Commande créée !",
