@@ -177,8 +177,8 @@ const PizzaioloDashboard = () => {
   const getStatusBadge = (statut: string) => {
     const statusConfig = {
       nouveau: { label: "Nouveau", variant: "destructive" as const },
-      en_preparation: { label: "En préparation", variant: "secondary" as const },
-      pret: { label: "Prêt", variant: "default" as const }
+      en_preparation: { label: "En préparation", variant: "warning" as const },
+      pret: { label: "Prêt", variant: "info" as const }
     };
 
     const config = statusConfig[statut as keyof typeof statusConfig];

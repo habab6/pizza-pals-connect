@@ -209,7 +209,7 @@ const LivreurDashboard = () => {
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ statut: 'livre' })
+        .update({ statut: 'termine' })
         .eq('id', commandeId);
 
       if (error) throw error;
@@ -319,7 +319,7 @@ const LivreurDashboard = () => {
                       <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
                       <p className="text-sm text-gray-600 mt-1">Client: {commande.clients.nom}</p>
                     </div>
-                    <Badge variant="secondary">En livraison</Badge>
+                    <Badge variant="warning">En livraison</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -413,7 +413,7 @@ const LivreurDashboard = () => {
                       <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
                       <p className="text-sm text-gray-600 mt-1">Client: {commande.clients.nom}</p>
                     </div>
-                    <Badge>Prêt</Badge>
+                    <Badge variant="info">Prêt</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

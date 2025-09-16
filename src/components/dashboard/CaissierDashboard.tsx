@@ -97,12 +97,12 @@ const CaissierDashboard = () => {
 
   const getStatusBadge = (statut: string) => {
     const statusConfig = {
-      nouveau: { label: "Nouveau", variant: "default" as const, icon: Clock },
-      en_preparation: { label: "En préparation", variant: "secondary" as const, icon: Clock },
-      pret: { label: "Prêt", variant: "default" as const, icon: CheckCircle },
-      en_livraison: { label: "En livraison", variant: "secondary" as const, icon: Truck },
-      livre: { label: "Livré", variant: "default" as const, icon: CheckCircle },
-      termine: { label: "Terminé", variant: "default" as const, icon: CheckCircle }
+      nouveau: { label: "Nouveau", variant: "destructive" as const, icon: Clock },
+      en_preparation: { label: "En préparation", variant: "warning" as const, icon: Clock },
+      pret: { label: "Prêt", variant: "info" as const, icon: CheckCircle },
+      en_livraison: { label: "En livraison", variant: "warning" as const, icon: Truck },
+      livre: { label: "Livré", variant: "success" as const, icon: CheckCircle },
+      termine: { label: "Terminé", variant: "success" as const, icon: CheckCircle }
     };
 
     const config = statusConfig[statut as keyof typeof statusConfig];
