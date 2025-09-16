@@ -7,6 +7,7 @@ import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
+import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Commande {
@@ -27,6 +28,8 @@ const CaissierDashboard = () => {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNouvelleCommande, setShowNouvelleCommande] = useState(false);
+  const [selectedCommandeId, setSelectedCommandeId] = useState<string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { toast } = useToast();
 
   const fetchCommandes = async () => {
@@ -120,6 +123,11 @@ const CaissierDashboard = () => {
         description: "Impossible de marquer la commande comme servie"
       });
     }
+  };
+
+  const voirDetails = (commandeId: string) => {
+    setSelectedCommandeId(commandeId);
+    setShowDetailsModal(true);
   };
 
   if (isLoading) {
@@ -252,9 +260,13 @@ const CaissierDashboard = () => {
                         Servie
                       </Button>
                     )}
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                     <Button
+                       onClick={() => voirDetails(commande.id)}
+                       variant="outline" 
+                       size="sm"
+                     >
+                       <Eye className="h-4 w-4" />
+                     </Button>
                   </div>
                 </div>
               ))
@@ -262,6 +274,16 @@ const CaissierDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modale des détails de commande */}
+      <CommandeDetailsModal
+        commandeId={selectedCommandeId}
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedCommandeId(null);
+        }}
+      />
     </div>
   );
 };
