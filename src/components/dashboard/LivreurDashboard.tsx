@@ -322,11 +322,16 @@ const LivreurDashboard = () => {
                   <div>
                     <h4 className="font-medium text-sm mb-2">Articles ({commande.commande_items.length}):</h4>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {commande.commande_items.map((item, index) => (
-                        <div key={index} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                          <span>{item.quantite}x {item.produits.nom}</span>
-                        </div>
-                      ))}
+                       {commande.commande_items.map((item, index) => (
+                         <div key={index} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                           <div className="flex-1">
+                             <span>{item.quantite}x {item.produits.nom}</span>
+                           </div>
+                           <Badge variant="outline" className="text-xs">
+                             {item.produits.categorie}
+                           </Badge>
+                         </div>
+                       ))}
                     </div>
                   </div>
 
@@ -401,12 +406,19 @@ const LivreurDashboard = () => {
                     <h4 className="font-medium text-sm mb-1">
                       Articles ({commande.commande_items.length}):
                     </h4>
-                    <p className="text-sm text-gray-600">
-                      {commande.commande_items.slice(0, 2).map(item => 
-                        `${item.quantite}x ${item.produits.nom}`
-                      ).join(', ')}
-                      {commande.commande_items.length > 2 && ` +${commande.commande_items.length - 2} autre(s)`}
-                    </p>
+                     <div className="space-y-1">
+                       {commande.commande_items.slice(0, 2).map((item, index) => (
+                         <div key={index} className="flex justify-between items-center text-sm">
+                           <span>{item.quantite}x {item.produits.nom}</span>
+                           <Badge variant="outline" className="text-xs">
+                             {item.produits.categorie}
+                           </Badge>
+                         </div>
+                       ))}
+                       {commande.commande_items.length > 2 && (
+                         <p className="text-sm text-gray-500">+{commande.commande_items.length - 2} autre(s)</p>
+                       )}
+                     </div>
                   </div>
 
                   {/* Total et heure */}

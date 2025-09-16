@@ -236,11 +236,16 @@ const PizzaioloDashboard = () => {
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">Articles:</h4>
                   <div className="space-y-1">
-                    {commande.commande_items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
-                      </div>
-                    ))}
+                     {commande.commande_items.map((item, index) => (
+                       <div key={index} className="flex justify-between items-center text-sm">
+                         <div className="flex-1">
+                           <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                         </div>
+                         <Badge variant="outline" className="text-xs">
+                           {item.produits.categorie}
+                         </Badge>
+                       </div>
+                     ))}
                   </div>
                 </div>
 
