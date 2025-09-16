@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,30 +55,9 @@ const LivreurDashboard = () => {
     fetchProfile();
   }, []);
 
-  useEffect(() => {
-    fetchCommandes();
+  
 
-    // Écouter les mises à jour en temps réel pour toutes les tables
-    const channel = supabase
-      .channel('livreur-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'commandes' },
-        () => fetchCommandes()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'commande_items' },
-        () => fetchCommandes()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchCommandes = async () => {
+  const fetchCommandes = useCallback(async () => {
     try {
       // Commandes prêtes pour livraison (non assignées)
       const { data: commandesDisponibles, error: error1 } = await supabase
@@ -147,7 +126,7 @@ const LivreurDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [livreurProfileId]);
 
   const accepterLivraison = async (commandeId: string) => {
     try {

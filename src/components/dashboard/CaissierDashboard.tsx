@@ -138,9 +138,14 @@ const CaissierDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
-        <Dialog open={showNouvelleCommande} onOpenChange={setShowNouvelleCommande}>
-          <DialogTrigger asChild>
-            <Button className="bg-red-600 hover:bg-red-700">
+          <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
+            setShowNouvelleCommande(open);
+            if (!open) {
+              fetchCommandes(); // Rafraîchir immédiatement après création/fermeture
+            }
+          }}>
+           <DialogTrigger asChild>
+             <Button className="bg-red-600 hover:bg-red-700">
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle commande
             </Button>
