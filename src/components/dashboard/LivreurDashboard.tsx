@@ -126,7 +126,30 @@ const LivreurDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [livreurProfileId]);
+  }, [livreurProfileId, toast]);
+
+  useEffect(() => {
+    fetchCommandes();
+
+    // Écouter les mises à jour en temps réel pour toutes les tables
+    const channel = supabase
+      .channel('livreur-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'commandes' },
+        () => fetchCommandes()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'commande_items' },
+        () => fetchCommandes()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchCommandes]);
 
   const accepterLivraison = async (commandeId: string) => {
     try {
