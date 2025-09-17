@@ -82,7 +82,9 @@ const HistoriqueCommandes = () => {
       const filtered = commandes.filter(commande => 
         commande.numero_commande.toLowerCase().includes(searchTerm.toLowerCase()) ||
         commande.clients?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        commande.type_commande.toLowerCase().includes(searchTerm.toLowerCase())
+        commande.type_commande.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getPaymentMethodLabel(commande.mode_paiement || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (commande.mode_paiement && commande.mode_paiement.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredCommandes(filtered);
     }
@@ -198,7 +200,7 @@ const HistoriqueCommandes = () => {
           <div className="flex-shrink-0 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Rechercher par numéro de commande, client ou type..."
+              placeholder="Rechercher par numéro, client, type ou mode de paiement..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
