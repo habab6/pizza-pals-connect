@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck } from "lucide-react";
+import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
 import HistoriqueCommandes from "./HistoriqueCommandes";
+import GestionArticles from "@/components/gestion/GestionArticles";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Commande {
@@ -29,6 +30,7 @@ const CaissierDashboard = () => {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNouvelleCommande, setShowNouvelleCommande] = useState(false);
+  const [showGestionArticles, setShowGestionArticles] = useState(false);
   const [selectedCommandeId, setSelectedCommandeId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { toast } = useToast();
@@ -146,6 +148,19 @@ const CaissierDashboard = () => {
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
         <div className="flex space-x-2 sm:space-x-3">
           <HistoriqueCommandes />
+          
+          <Dialog open={showGestionArticles} onOpenChange={setShowGestionArticles}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Settings className="h-4 w-4" />
+                <span className="hidden md:inline">Gérer articles</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] overflow-hidden">
+              <GestionArticles onClose={() => setShowGestionArticles(false)} />
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
             setShowNouvelleCommande(open);
             if (!open) {
