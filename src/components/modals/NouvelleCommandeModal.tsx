@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +84,10 @@ const NouvelleCommandeModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={() => !isClosing && handleClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>Nouvelle commande reçue</DialogDescription>
+        </DialogHeader>
         <div className={`bg-white rounded-lg shadow-2xl transition-all duration-500 ${isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}>
           {/* Header avec animation */}
           <div className="bg-red-600 text-white p-6 rounded-t-lg">
