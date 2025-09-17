@@ -1,13 +1,36 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Receipt, Pizza, Sandwich, Truck } from "lucide-react";
+import { Receipt, Pizza, Sandwich, Truck, Lock } from "lucide-react";
+import { PosteLoginModal } from "@/components/auth/PosteLoginModal";
+import { usePosteAuth } from "@/hooks/usePosteAuth";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { authenticatePoste, currentSession, logout } = usePosteAuth();
+  
+  const [selectedPoste, setSelectedPoste] = useState<{id: string, name: string} | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const handleRoleSelection = (role: string) => {
-    navigate(`/dashboard/${role}`);
+  const handleRoleSelection = (roleId: string, roleName: string) => {
+    setSelectedPoste({ id: roleId, name: roleName });
+    setShowLoginModal(true);
+  };
+
+  const handleAuthenticate = async (password: string): Promise<boolean> => {
+    if (!selectedPoste) return false;
+    
+    const success = await authenticatePoste(selectedPoste.id, password);
+    if (success) {
+      // Authentification réussie, rediriger vers le dashboard
+      navigate(`/dashboard/${selectedPoste.id}`);
+    }
+    return success;
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   const roles = [
@@ -72,11 +95,18 @@ const Index = () => {
             return (
               <Card 
                 key={role.id}
-                className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-0 shadow-lg"
-                onClick={() => handleRoleSelection(role.id)}
+                className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-0 shadow-lg relative"
+                onClick={() => handleRoleSelection(role.id, role.name)}
               >
                 <CardContent className="p-8">
                   <div className="flex flex-col items-center text-center space-y-4">
+                    {/* Indicateur de sécurité */}
+                    <div className="absolute top-3 right-3">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
+                        <Lock className="h-3 w-3 text-red-600" />
+                      </div>
+                    </div>
+                    
                     <div className={`flex h-16 w-16 items-center justify-center rounded-full ${role.iconBg} group-hover:scale-110 transition-transform duration-300`}>
                       <IconComponent className={`h-8 w-8 ${role.iconColor}`} />
                     </div>
@@ -91,6 +121,7 @@ const Index = () => {
                     <Button 
                       className={`w-full mt-4 ${role.color} text-white font-semibold py-3 rounded-lg transition-all duration-300 group-hover:shadow-lg`}
                     >
+                      <Lock className="h-4 w-4 mr-2" />
                       Accéder
                     </Button>
                   </div>
@@ -107,6 +138,17 @@ const Index = () => {
           </p>
         </div>
       </div>
+
+      {/* Modal de connexion */}
+      {selectedPoste && (
+        <PosteLoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onAuthenticate={handleAuthenticate}
+          posteName={selectedPoste.name}
+          posteId={selectedPoste.id}
+        />
+      )}
     </div>
   );
 };

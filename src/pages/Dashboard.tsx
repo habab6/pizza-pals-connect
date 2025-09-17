@@ -1,14 +1,36 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import CaissierDashboard from "@/components/dashboard/CaissierDashboard";
 import PizzaioloDashboard from "@/components/dashboard/PizzaioloDashboard";
 import CuisinierDashboard from "@/components/dashboard/CuisinierDashboard";
 import LivreurDashboard from "@/components/dashboard/LivreurDashboard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
+import { usePosteAuth } from "@/hooks/usePosteAuth";
 
 const Dashboard = () => {
   const { role } = useParams<{ role: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated, logout, currentSession } = usePosteAuth();
+
+  useEffect(() => {
+    // Vérifier l'authentification au chargement de la page
+    if (!role || !['caissier', 'pizzaiolo', 'cuisinier', 'livreur'].includes(role)) {
+      navigate("/");
+      return;
+    }
+
+    if (!isAuthenticated(role)) {
+      // Pas authentifié pour ce poste, rediriger vers l'accueil
+      navigate("/");
+      return;
+    }
+  }, [role, isAuthenticated, navigate]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   if (!role || !['caissier', 'pizzaiolo', 'cuisinier', 'livreur'].includes(role)) {
     return (
@@ -46,6 +68,22 @@ const Dashboard = () => {
               </h1>
             </div>
             <div className="flex items-center space-x-3">
+              <div className="text-sm text-gray-600">
+                {currentSession && (
+                  <div className="flex items-center space-x-2">
+                    <Lock className="h-4 w-4 text-green-600" />
+                    <span>Connecté en tant que <strong>{currentSession.posteName}</strong></span>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="flex items-center space-x-2 text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <Lock className="h-4 w-4" />
+                <span>Déconnexion</span>
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate("/")}

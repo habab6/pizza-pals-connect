@@ -223,6 +223,33 @@ export type Database = {
           },
         ]
       }
+      poste_passwords: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          poste_id: string
+          poste_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          poste_id: string
+          poste_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          poste_id?: string
+          poste_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       produits: {
         Row: {
           categorie: Database["public"]["Enums"]["product_category"]

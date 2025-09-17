@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database, Receipt } from "lucide-react";
+import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database, Receipt, Key } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -11,6 +11,7 @@ import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
 import HistoriqueCommandes from "./HistoriqueCommandes";
 import GestionArticles from "@/components/gestion/GestionArticles";
+import GestionMotsDePasse from "@/components/gestion/GestionMotsDePasse";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -33,6 +34,7 @@ const CaissierDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showNouvelleCommande, setShowNouvelleCommande] = useState(false);
   const [showGestionArticles, setShowGestionArticles] = useState(false);
+  const [showGestionMotsDePasse, setShowGestionMotsDePasse] = useState(false);
   const [selectedCommandeId, setSelectedCommandeId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -292,6 +294,10 @@ const CaissierDashboard = () => {
                 <Settings className="h-4 w-4 mr-2" />
                 Gestion des articles
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowGestionMotsDePasse(true)}>
+                <Key className="h-4 w-4 mr-2" />
+                Gestion des mots de passe
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={viderCommandes} className="text-red-600">
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -307,6 +313,12 @@ const CaissierDashboard = () => {
           <Dialog open={showGestionArticles} onOpenChange={setShowGestionArticles}>
             <DialogContent className="max-w-[95vw] md:max-w-4xl h-[90vh] max-h-[95vh] overflow-hidden flex flex-col">
               <GestionArticles onClose={() => setShowGestionArticles(false)} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showGestionMotsDePasse} onOpenChange={setShowGestionMotsDePasse}>
+            <DialogContent className="max-w-[95vw] md:max-w-4xl h-[90vh] max-h-[95vh] overflow-hidden flex flex-col">
+              <GestionMotsDePasse onClose={() => setShowGestionMotsDePasse(false)} />
             </DialogContent>
           </Dialog>
 
