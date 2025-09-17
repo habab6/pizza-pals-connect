@@ -103,3 +103,100 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Styles pour l'impression du rapport */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  
+  /* Masquer les éléments non nécessaires */
+  .print\\:hidden {
+    display: none !important;
+  }
+  
+  /* Assurer que le contenu tient sur une page */
+  .print\\:max-w-full {
+    max-width: 100% !important;
+  }
+  
+  .print\\:m-0 {
+    margin: 0 !important;
+  }
+  
+  .print\\:p-4 {
+    padding: 1rem !important;
+  }
+  
+  /* Optimiser l'espacement pour l'impression */
+  .print\\:space-y-3 > * + * {
+    margin-top: 0.75rem !important;
+  }
+  
+  .print\\:space-y-1 > * + * {
+    margin-top: 0.25rem !important;
+  }
+  
+  /* Bordures et ombres pour l'impression */
+  .print\\:shadow-none {
+    box-shadow: none !important;
+  }
+  
+  .print\\:border {
+    border: 1px solid #d1d5db !important;
+  }
+  
+  .print\\:border-gray-300 {
+    border-color: #d1d5db !important;
+  }
+  
+  /* Couleurs de fond pour l'impression */
+  .print\\:bg-gray-100 {
+    background-color: #f3f4f6 !important;
+  }
+  
+  /* Tailles de texte pour l'impression */
+  .print\\:text-sm {
+    font-size: 0.875rem !important;
+  }
+  
+  .print\\:text-lg {
+    font-size: 1.125rem !important;
+  }
+  
+  .print\\:text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Tailles d'icônes pour l'impression */
+  .print\\:h-5 {
+    height: 1.25rem !important;
+  }
+  
+  .print\\:w-5 {
+    width: 1.25rem !important;
+  }
+  
+  /* Espacement pour l'impression */
+  .print\\:pb-1 {
+    padding-bottom: 0.25rem !important;
+  }
+  
+  .print\\:gap-3 {
+    gap: 0.75rem !important;
+  }
+  
+  /* Force break-inside avoid pour éviter les coupures */
+  .print\\:break-inside-avoid,
+  [class*='card'],
+  [class*='Card'] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

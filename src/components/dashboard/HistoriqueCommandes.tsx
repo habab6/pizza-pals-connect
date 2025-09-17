@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, History, Calendar, Search, CreditCard, FileText, Printer } from "lucide-react";
+import { Eye, History, Calendar, Search, CreditCard, FileText, Printer, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
@@ -34,6 +37,7 @@ const HistoriqueCommandes = () => {
   const [selectedCommandeId, setSelectedCommandeId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRapportModal, setShowRapportModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { toast } = useToast();
 
   const fetchHistorique = async () => {
@@ -322,33 +326,55 @@ const HistoriqueCommandes = () => {
 
         {/* Modale du rapport journalier */}
         <Dialog open={showRapportModal} onOpenChange={setShowRapportModal}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:max-w-full print:m-0 print:p-4">
             <DialogHeader className="print:hidden">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <DialogTitle className="flex items-center space-x-3">
                   <FileText className="h-6 w-6 text-blue-600" />
                   <span>Rapport journalier des ventes</span>
                 </DialogTitle>
-                <Button
-                  variant="outline"
-                  onClick={imprimerRapport}
-                  className="flex items-center space-x-2"
-                >
-                  <Printer className="h-4 w-4" />
-                  <span>Imprimer</span>
-                </Button>
+                <div className="flex items-center space-x-3">
+                  {/* Sélecteur de date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="flex items-center space-x-2">
+                        <CalendarDays className="h-4 w-4" />
+                        <span>{format(selectedDate, "dd/MM/yyyy")}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <CalendarComponent
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        disabled={(date) => date > new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={imprimerRapport}
+                    className="flex items-center space-x-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>Imprimer</span>
+                  </Button>
+                </div>
               </div>
             </DialogHeader>
 
-            <div className="space-y-6 print:text-black">
+            <div className="space-y-4 print:text-black print:space-y-3">
               {(() => {
-                const stats = getStatistiquesJour();
+                const stats = getStatistiquesJour(selectedDate);
                 return (
                   <>
                     {/* En-tête du rapport pour impression */}
-                    <div className="text-center hidden print:block mb-8">
-                      <h1 className="text-2xl font-bold mb-2">Rapport journalier des ventes</h1>
-                      <p className="text-lg text-gray-600">{new Date().toLocaleDateString('fr-FR', { 
+                    <div className="text-center hidden print:block mb-4">
+                      <h1 className="text-xl font-bold mb-1">Rapport journalier des ventes</h1>
+                      <p className="text-base text-gray-600">{selectedDate.toLocaleDateString('fr-FR', { 
                         weekday: 'long', 
                         year: 'numeric', 
                         month: 'long', 
@@ -356,106 +382,108 @@ const HistoriqueCommandes = () => {
                       })}</p>
                     </div>
 
-                    {/* Vue d'ensemble */}
-                    <Card className="print:shadow-none print:border">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Calendar className="h-5 w-5" />
-                          <span>Vue d'ensemble - {new Date().toLocaleDateString('fr-FR')}</span>
+                    {/* Vue d'ensemble - version compacte */}
+                    <Card className="print:shadow-none print:border print:border-gray-300">
+                      <CardHeader className="pb-2 print:pb-1">
+                        <CardTitle className="flex items-center space-x-2 text-base print:text-lg">
+                          <Calendar className="h-4 w-4 print:h-5 print:w-5" />
+                          <span>Vue d'ensemble</span>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-3 gap-4 print:gap-3">
                           <div className="text-center">
-                            <p className="text-sm font-medium text-gray-600">Chiffre d'affaires</p>
-                            <p className="text-3xl font-bold text-green-600">{stats.totalVentes.toFixed(2)}€</p>
+                            <p className="text-xs font-medium text-gray-600 print:text-sm">Chiffre d'affaires</p>
+                            <p className="text-xl font-bold text-green-600 print:text-2xl">{stats.totalVentes.toFixed(2)}€</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-sm font-medium text-gray-600">Nombre de commandes</p>
-                            <p className="text-3xl font-bold text-blue-600">{stats.nombreCommandes}</p>
+                            <p className="text-xs font-medium text-gray-600 print:text-sm">Nombre de commandes</p>
+                            <p className="text-xl font-bold text-blue-600 print:text-2xl">{stats.nombreCommandes}</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-sm font-medium text-gray-600">Panier moyen</p>
-                            <p className="text-3xl font-bold text-purple-600">{stats.moyenneParCommande.toFixed(2)}€</p>
+                            <p className="text-xs font-medium text-gray-600 print:text-sm">Panier moyen</p>
+                            <p className="text-xl font-bold text-purple-600 print:text-2xl">{stats.moyenneParCommande.toFixed(2)}€</p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
-                    {/* Répartition par type de commande */}
-                    <Card className="print:shadow-none print:border">
-                      <CardHeader>
-                        <CardTitle>Répartition par type de commande</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">Sur place</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parType.sur_place.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parType.sur_place.nombre} commande(s)</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-3">
+                      {/* Répartition par type de commande - version compacte */}
+                      <Card className="print:shadow-none print:border print:border-gray-300">
+                        <CardHeader className="pb-2 print:pb-1">
+                          <CardTitle className="text-base print:text-lg">Par type de commande</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="space-y-2 print:space-y-1">
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">Sur place</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parType.sur_place.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parType.sur_place.nombre} cmd</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">À emporter</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parType.a_emporter.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parType.a_emporter.nombre} cmd</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">Livraison</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parType.livraison.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parType.livraison.nombre} cmd</div>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">À emporter</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parType.a_emporter.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parType.a_emporter.nombre} commande(s)</div>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">Livraison</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parType.livraison.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parType.livraison.nombre} commande(s)</div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
 
-                    {/* Répartition par mode de paiement */}
-                    <Card className="print:shadow-none print:border">
-                      <CardHeader>
-                        <CardTitle>Répartition par mode de paiement</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">Espèces</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parPaiement.cash.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parPaiement.cash.nombre} paiement(s)</div>
+                      {/* Répartition par mode de paiement - version compacte */}
+                      <Card className="print:shadow-none print:border print:border-gray-300">
+                        <CardHeader className="pb-2 print:pb-1">
+                          <CardTitle className="text-base print:text-lg">Par mode de paiement</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="space-y-2 print:space-y-1">
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">Espèces</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parPaiement.cash.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parPaiement.cash.nombre} paie.</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">Bancontact</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parPaiement.bancontact.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parPaiement.bancontact.nombre} paie.</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">Visa</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parPaiement.visa.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parPaiement.visa.nombre} paie.</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-gray-50 rounded print:bg-gray-100">
+                              <span className="font-medium text-sm">Mastercard</span>
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{stats.parPaiement.mastercard.total.toFixed(2)}€</div>
+                                <div className="text-xs text-gray-600">{stats.parPaiement.mastercard.nombre} paie.</div>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">Bancontact</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parPaiement.bancontact.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parPaiement.bancontact.nombre} paiement(s)</div>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">Visa</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parPaiement.visa.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parPaiement.visa.nombre} paiement(s)</div>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                            <span className="font-medium">Mastercard</span>
-                            <div className="text-right">
-                              <div className="font-bold">{stats.parPaiement.mastercard.total.toFixed(2)}€</div>
-                              <div className="text-sm text-gray-600">{stats.parPaiement.mastercard.nombre} paiement(s)</div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
 
                     {/* Pied de rapport pour impression */}
-                    <div className="text-center hidden print:block mt-8 pt-4 border-t">
-                      <p className="text-sm text-gray-600">
+                    <div className="text-center hidden print:block mt-4 pt-2 border-t border-gray-300">
+                      <p className="text-xs text-gray-600">
                         Rapport généré le {new Date().toLocaleString('fr-FR')}
                       </p>
                     </div>
