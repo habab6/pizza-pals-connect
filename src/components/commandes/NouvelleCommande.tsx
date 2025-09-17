@@ -285,40 +285,38 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const commerces = {
     dolce_italia: {
       name: 'Dolce Italia',
-      icon: '🍕',
       color: 'bg-red-50 text-red-700 border-red-200',
       categories: [
-        { key: 'pizzas', label: 'Pizzas', icon: '🍕', color: 'bg-red-50 text-red-700 border-red-200' },
-        { key: 'pates', label: 'Pâtes', icon: '🍝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-        { key: 'desserts', label: 'Desserts', icon: '🍰', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-        { key: 'boissons_dolce', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+        { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
+        { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+        { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+        { key: 'boissons_dolce', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' }
       ]
     },
     '961_lsf': {
       name: '961 LSF',
-      icon: '🥪',
       color: 'bg-green-50 text-green-700 border-green-200',
       categories: [
-        { key: 'entrees', label: 'Entrées', icon: '🥗', color: 'bg-green-50 text-green-700 border-green-200' },
-        { key: 'sandwiches', label: 'Sandwiches', icon: '🥪', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-        { key: 'bowls_salades', label: 'Bowls & Salades', icon: '🥙', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-        { key: 'frites', label: 'Frites', icon: '🍟', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-        { key: 'boissons_lsf', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+        { key: 'entrees', label: 'Entrées', color: 'bg-green-50 text-green-700 border-green-200' },
+        { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+        { key: 'bowls_salades', label: 'Bowls & Salades', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+        { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+        { key: 'boissons_lsf', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' }
       ]
     }
   };
 
   const categories = [
     // Dolce Italia
-    { key: 'pizzas', label: 'Pizzas', icon: '🍕', color: 'bg-red-50 text-red-700 border-red-200' },
-    { key: 'pates', label: 'Pâtes', icon: '🍝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-    { key: 'desserts', label: 'Desserts', icon: '🍰', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-    { key: 'boissons', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+    { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
+    { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+    { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+    { key: 'boissons', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
     // 961 LSF
-    { key: 'entrees', label: 'Entrées', icon: '🥗', color: 'bg-green-50 text-green-700 border-green-200' },
-    { key: 'sandwiches', label: 'Sandwiches', icon: '🥪', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-    { key: 'bowls_salades', label: 'Bowls & Salades', icon: '🥙', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-    { key: 'frites', label: 'Frites', icon: '🍟', color: 'bg-amber-50 text-amber-700 border-amber-200' }
+    { key: 'entrees', label: 'Entrées', color: 'bg-green-50 text-green-700 border-green-200' },
+    { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+    { key: 'bowls_salades', label: 'Bowls & Salades', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+    { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' }
   ];
 
   const canProceedToClient = () => {
@@ -403,9 +401,9 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sur_place">🍽️ Sur place</SelectItem>
-                      <SelectItem value="a_emporter">📦 À emporter</SelectItem>
-                      <SelectItem value="livraison">🚚 Livraison</SelectItem>
+                    <SelectItem value="sur_place">Sur place</SelectItem>
+                      <SelectItem value="a_emporter">À emporter</SelectItem>
+                      <SelectItem value="livraison">Livraison</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -428,10 +426,9 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                       setCommerceActive('dolce_italia');
                       setCategorieActive('pizzas');
                     }}
-                    className="flex items-center space-x-2 px-6"
+                    className="px-6"
                   >
-                    <span>🍕</span>
-                    <span>Dolce Italia</span>
+                    Dolce Italia
                   </Button>
                   
                   <Button
@@ -440,10 +437,9 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                       setCommerceActive('961_lsf');
                       setCategorieActive('entrees');
                     }}
-                    className="flex items-center space-x-2 px-6"
+                    className="px-6"
                   >
-                    <span>🥪</span>
-                    <span>961 LSF</span>
+                    961 LSF
                   </Button>
                 </div>
 
@@ -454,11 +450,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                       key={cat.key}
                       variant={categorieActive === cat.key ? "default" : "outline"}
                       onClick={() => setCategorieActive(cat.key)}
-                      className="whitespace-nowrap min-w-0 flex items-center space-x-2"
+                      className="whitespace-nowrap min-w-0"
                       size="sm"
                     >
-                      <span>{cat.icon}</span>
-                      <span className="hidden sm:inline">{cat.label}</span>
+                      {cat.label}
                     </Button>
                   ))}
                 </div>

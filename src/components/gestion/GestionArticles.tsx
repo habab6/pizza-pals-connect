@@ -220,19 +220,19 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
 
   const categories = [
     // Dolce Italia
-    { key: 'pizzas', label: 'Pizzas', icon: '🍕', commerce: 'dolce_italia' },
-    { key: 'pates', label: 'Pâtes', icon: '🍝', commerce: 'dolce_italia' },
-    { key: 'desserts', label: 'Desserts', icon: '🍰', commerce: 'dolce_italia' },
-    { key: 'boissons', label: 'Boissons', icon: '🥤', commerce: 'both' },
+    { key: 'pizzas', label: 'Pizzas', commerce: 'dolce_italia' },
+    { key: 'pates', label: 'Pâtes', commerce: 'dolce_italia' },
+    { key: 'desserts', label: 'Desserts', commerce: 'dolce_italia' },
+    { key: 'boissons', label: 'Boissons', commerce: 'both' },
     // 961 LSF
-    { key: 'entrees', label: 'Entrées', icon: '🥗', commerce: '961_lsf' },
-    { key: 'sandwiches', label: 'Sandwiches', icon: '🥪', commerce: '961_lsf' },
-    { key: 'bowls_salades', label: 'Bowls & Salades', icon: '🥙', commerce: '961_lsf' },
-    { key: 'frites', label: 'Frites', icon: '🍟', commerce: '961_lsf' }
+    { key: 'entrees', label: 'Entrées', commerce: '961_lsf' },
+    { key: 'sandwiches', label: 'Sandwiches', commerce: '961_lsf' },
+    { key: 'bowls_salades', label: 'Bowls & Salades', commerce: '961_lsf' },
+    { key: 'frites', label: 'Frites', commerce: '961_lsf' }
   ];
 
   const getCategoryInfo = (categorie: string) => {
-    return categories.find(cat => cat.key === categorie) || { key: categorie, label: categorie, icon: '📦' };
+    return categories.find(cat => cat.key === categorie) || { key: categorie, label: categorie };
   };
 
   const filteredProducts = produits.filter(product => {
@@ -287,7 +287,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                 <SelectItem value="all">Toutes</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.key} value={cat.key}>
-                    {cat.icon} {cat.label}
+                    {cat.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -324,7 +324,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <div className="text-2xl flex-shrink-0">{categoryInfo.icon}</div>
                           <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-1">
                             <h3 className="font-medium truncate">{product.nom}</h3>
@@ -421,7 +420,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                 <SelectContent>
                   {categories.map(cat => (
                     <SelectItem key={cat.key} value={cat.key}>
-                      {cat.icon} {cat.label}
+                      {cat.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
