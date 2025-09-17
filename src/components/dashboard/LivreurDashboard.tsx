@@ -91,7 +91,7 @@ const LivreurDashboard = () => {
       const newCommandesCount = (commandesDisponibles || []).length;
       
       if (newCommandesCount > previousCommandesCount) {
-        playNotificationSound().catch(console.error);
+        playNotificationSound();
       } else if (newCommandesCount === 0) {
         stopNotificationSound();
       }
