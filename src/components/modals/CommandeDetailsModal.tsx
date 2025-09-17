@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Clock, User, Phone, MapPin, Receipt, Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, User, Phone, MapPin, Receipt, Package, Trash2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
@@ -23,6 +24,7 @@ interface CommandeDetail {
   notes?: string;
   created_at: string;
   updated_at: string;
+  mode_paiement?: string;
   clients?: {
     nom: string;
     telephone: string;
@@ -44,6 +46,8 @@ interface CommandeDetail {
 const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsModalProps) => {
   const [commande, setCommande] = useState<CommandeDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -123,6 +127,81 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
     return types[type as keyof typeof types] || type;
   };
 
+  const getPaymentMethodLabel = (method: string) => {
+    const methods = {
+      bancontact: "Bancontact",
+      visa: "Visa", 
+      mastercard: "Mastercard",
+      cash: "Espèces"
+    };
+    return methods[method as keyof typeof methods] || method;
+  };
+
+  const handleDeleteCommande = async () => {
+    if (!commande) return;
+    
+    setIsDeleting(true);
+    try {
+      // Supprimer d'abord les items de commande
+      const { error: itemsError } = await supabase
+        .from('commande_items')
+        .delete()
+        .eq('commande_id', commande.id);
+
+      if (itemsError) throw itemsError;
+
+      // Ensuite supprimer la commande
+      const { error: commandeError } = await supabase
+        .from('commandes')
+        .delete()
+        .eq('id', commande.id);
+
+      if (commandeError) throw commandeError;
+
+      toast({
+        title: "Commande supprimée",
+        description: "La commande a été définitivement supprimée de la base de données"
+      });
+
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de supprimer la commande"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const formatDateWithHiddenDelete = (dateString: string) => {
+    const date = new Date(dateString);
+    const formatted = date.toLocaleString('fr-FR');
+    const parts = formatted.split(':');
+    
+    if (parts.length >= 3) {
+      const seconds = parts[2].substring(0, 2);
+      const lastTwoDigits = seconds.substring(seconds.length - 2);
+      const firstDigits = seconds.substring(0, seconds.length - 2);
+      
+      return (
+        <span className="relative">
+          {parts[0]}:{parts[1]}:{firstDigits}
+          <span 
+            className="relative cursor-pointer"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            {lastTwoDigits}
+          </span>
+        </span>
+      );
+    }
+    
+    return formatted;
+  };
+
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -169,13 +248,22 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                   <p className="text-sm font-medium text-gray-600">Total</p>
                   <p className="text-lg font-bold text-red-600">{commande.total.toFixed(2)}€</p>
                 </div>
+                {commande.mode_paiement && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Mode de paiement</p>
+                    <p className="text-lg flex items-center space-x-2">
+                      <Receipt className="h-4 w-4" />
+                      <span>{getPaymentMethodLabel(commande.mode_paiement)}</span>
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium text-gray-600">Commande passée</p>
                   <p className="text-sm">{new Date(commande.created_at).toLocaleString('fr-FR')}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Dernière mise à jour</p>
-                  <p className="text-sm">{new Date(commande.updated_at).toLocaleString('fr-FR')}</p>
+                  <p className="text-sm">{formatDateWithHiddenDelete(commande.updated_at)}</p>
                 </div>
               </div>
               
@@ -273,6 +361,50 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
             </CardContent>
           </Card>
         </div>
+
+        {/* Modale de confirmation de suppression */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Supprimer la commande</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-sm text-red-800">
+                  <strong>Attention :</strong> Cette action est irréversible !
+                </p>
+                <p className="text-sm text-red-700 mt-2">
+                  La commande <strong>{commande?.numero_commande}</strong> et tous ses éléments seront définitivement supprimés de la base de données.
+                </p>
+              </div>
+              <div className="flex space-x-2 justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={handleDeleteCommande}
+                  disabled={isDeleting}
+                  className="flex items-center space-x-2"
+                >
+                  {isDeleting ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  <span>{isDeleting ? "Suppression..." : "Supprimer définitivement"}</span>
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
