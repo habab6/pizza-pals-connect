@@ -30,8 +30,6 @@ interface Commande {
 }
 
 const CaissierDashboard = () => {
-  const [commandes, setCommandes] = useState<Commande[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showNouvelleCommande, setShowNouvelleCommande] = useState(false);
   const [showGestionArticles, setShowGestionArticles] = useState(false);
   const [showGestionMotsDePasse, setShowGestionMotsDePasse] = useState(false);
@@ -42,44 +40,12 @@ const CaissierDashboard = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
 
-  const fetchCommandes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients (
-            nom,
-            telephone,
-            adresse
-          )
-        `)
-        .neq('statut', 'termine')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setCommandes(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les commandes"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Auto-refresh toutes les secondes
-  useAutoRefresh({ 
-    refreshFunction: fetchCommandes,
-    intervalMs: 1000,
-    enabled: true
+  // Hook optimisé - 10 secondes pour le caissier (moins critique)
+  const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
+    role: 'caissier',
+    intervalMs: 10000, // Réduit de 90% les requêtes
+    enableRealtime: true
   });
-
-  useEffect(() => {
-    fetchCommandes();
-  }, []);
 
   const getStatusBadge = (statut: string) => {
     const statusConfig = {
@@ -177,7 +143,7 @@ const CaissierDashboard = () => {
       setShowPaymentModal(false);
       setCommandeToServe(null);
       setSelectedPaymentMethod("");
-      fetchCommandes();
+      forceRefresh();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -223,7 +189,7 @@ const CaissierDashboard = () => {
         description: "Toutes les commandes ont été supprimées avec succès"
       });
 
-      fetchCommandes();
+      forceRefresh();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -325,7 +291,7 @@ const CaissierDashboard = () => {
           <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
             setShowNouvelleCommande(open);
             if (!open) {
-              fetchCommandes(); // Rafraîchir immédiatement après création/fermeture
+              forceRefresh(); // Rafraîchir immédiatement après création/fermeture
             }
           }}>
            <DialogTrigger asChild>

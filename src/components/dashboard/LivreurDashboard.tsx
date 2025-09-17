@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Phone, MapPin, Clock, CheckCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
-import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
+import { stopNotificationSound } from "@/utils/notificationSound";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -35,89 +35,19 @@ interface Commande {
 }
 
 const LivreurDashboard = () => {
-  const [commandes, setCommandes] = useState<Commande[]>([]);
-  const [mesLivraisons, setMesLivraisons] = useState<Commande[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [nouvelleLivraison, setNouvelleLivraison] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [commandeToDeliver, setCommandeToDeliver] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
-  const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
-  
-  // Pas besoin de profil livreur - une seule personne par rôle
 
-  
-
-  const fetchCommandes = useCallback(async () => {
-    try {
-      // Commandes prêtes pour livraison
-      const { data: commandesDisponibles, error: error1 } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients (nom, telephone, adresse),
-          commande_items (
-            quantite,
-            produits (nom, categorie)
-          )
-        `)
-        .eq('type_commande', 'livraison')
-        .eq('statut', 'pret')
-        .order('created_at', { ascending: true });
-
-      // Livraisons en cours
-      const { data: mesLivraisonsData, error: error2 } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients (nom, telephone, adresse),
-          commande_items (
-            quantite,
-            produits (nom, categorie)
-          )
-        `)
-        .eq('statut', 'en_livraison')
-        .order('created_at', { ascending: true });
-
-      if (error1) throw error1;
-      if (error2) throw error2;
-
-      setCommandes(commandesDisponibles || []);
-      setMesLivraisons(mesLivraisonsData || []);
-      
-      // Détecter les nouvelles livraisons disponibles et jouer le son
-      const newCommandesCount = (commandesDisponibles || []).length;
-      
-      if (newCommandesCount > previousCommandesCount && newCommandesCount > 0) {
-        playNotificationSound();
-      } else if (newCommandesCount === 0) {
-        stopNotificationSound();
-      }
-      
-      setPreviousCommandesCount(newCommandesCount);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les commandes"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  // Auto-refresh toutes les secondes
-  useAutoRefresh({ 
-    refreshFunction: fetchCommandes,
-    intervalMs: 1000,
-    enabled: true
+  // Hook optimisé - 5 secondes au lieu de 1 seconde  
+  const { commandes, mesLivraisons, isLoading, forceRefresh } = useOptimizedCommandes({
+    role: 'livreur',
+    intervalMs: 5000, // Réduit de 80% les requêtes
+    enableRealtime: true
   });
-
-  useEffect(() => {
-    fetchCommandes();
-  }, [fetchCommandes]);
 
   const accepterLivraison = async (commandeId: string) => {
     try {
@@ -149,7 +79,7 @@ const LivreurDashboard = () => {
         description: "La commande est maintenant en cours de livraison"
       });
 
-      fetchCommandes();
+      forceRefresh();
     } catch (error: any) {
       console.error('Erreur complète:', error);
       toast({
@@ -202,7 +132,7 @@ const LivreurDashboard = () => {
       setShowPaymentModal(false);
       setCommandeToDeliver(null);
       setSelectedPaymentMethod("");
-      fetchCommandes();
+      forceRefresh();
     } catch (error: any) {
       console.error('Erreur complète termine:', error);
       toast({

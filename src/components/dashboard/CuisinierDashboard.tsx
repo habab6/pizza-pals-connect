@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle, Sandwich } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
 import { formatProduitNom } from "@/utils/formatters";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
-import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
+import { stopNotificationSound } from "@/utils/notificationSound";
 
 interface Commande {
   id: string;
@@ -33,14 +33,18 @@ interface Commande {
 }
 
 const CuisinierDashboard = () => {
-  const [commandes, setCommandes] = useState<Commande[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
 
-  const fetchCommandes = async () => {
+  // Hook optimisé - 3 secondes au lieu de 1 seconde
+  const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
+    role: 'cuisinier',
+    intervalMs: 3000, // Réduit de 70% les requêtes
+    enableRealtime: true
+  });
+
+  const fetchCommandeComplete = async (commandeId: string) => {
     try {
       const { data, error } = await supabase
         .from('commandes')
@@ -52,76 +56,17 @@ const CuisinierDashboard = () => {
             produits (nom, categorie, commerce)
           )
         `)
-        .in('statut_961_lsf', ['nouveau', 'en_preparation', 'pret'])
-        .neq('statut_961_lsf', 'termine')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      
-      // Filtrer les commandes qui contiennent des articles 961 LSF (par catégorie)
-      const commandesLSF = (data || []).filter((commande: any) => 
-        commande.commande_items?.some((item: any) => 
-          ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
-        )
-      );
-
-      setCommandes(commandesLSF as any);
-      
-      // Détecter les nouvelles commandes et jouer le son
-      const newCommandesCount = commandesLSF.filter((commande: any) => {
-        const itemsLSF = commande.commande_items?.filter((item: any) => 
-          ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
-        );
-        const statutLSF = commande.statut_961_lsf || 'nouveau';
-        return itemsLSF.length > 0 && statutLSF === 'nouveau';
-      }).length;
-      
-      if (newCommandesCount > previousCommandesCount) {
-        playNotificationSound();
-      } else if (newCommandesCount === 0) {
-        stopNotificationSound();
-      }
-      
-      setPreviousCommandesCount(newCommandesCount);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les commandes"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Auto-refresh toutes les secondes
-  useAutoRefresh({ 
-    refreshFunction: fetchCommandes,
-    intervalMs: 1000,
-    enabled: true
-  });
-
-  useEffect(() => {
-    fetchCommandes();
-  }, []);
-
-  const fetchCommandeComplete = async (commandeId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients (nom, telephone, adresse),
-          commande_items (
-            quantite,
-            produits (nom, categorie)
-          )
-        `)
         .eq('id', commandeId)
         .single();
 
       if (error) throw error;
-      if (data) {
+      
+      // Filtrer pour s'assurer qu'il y a des items 961 LSF
+      const hasLSFItems = data.commande_items?.some((item: any) => 
+        ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+      );
+      
+      if (data && hasLSFItems) {
         setNouvelleCommande(data);
         setShowModal(true);
       }
@@ -130,25 +75,33 @@ const CuisinierDashboard = () => {
     }
   };
 
-  const changerStatut = async (commandeId: string, nouveauStatut: 'nouveau' | 'en_preparation' | 'pret' | 'en_livraison' | 'livre' | 'termine') => {
+  const changerStatut = async (commandeId: string, nouveauStatut: any) => {
     try {
-      const { error } = await supabase
+      console.log('[Cuisinier] Click changerStatut:', commandeId, nouveauStatut);
+      
+      const { data, error } = await supabase
         .from('commandes')
         .update({ statut_961_lsf: nouveauStatut })
-        .eq('id', commandeId);
+        .eq('id', commandeId)
+        .select('id, statut_961_lsf');
+
+      console.log('[Cuisinier] Update result:', { data, error });
 
       if (error) throw error;
 
-      // Arrêter le son si c'est une commande qui était "nouveau"
-      if (nouveauStatut !== 'nouveau') {
+      // Arrêter le son quand on commence à préparer
+      if (nouveauStatut === 'en_preparation') {
         stopNotificationSound();
       }
-      
+
       toast({
         title: "Statut mis à jour",
-        description: `Commande 961 LSF marquée comme ${nouveauStatut.replace('_', ' ')}`
+        description: `Commande marquée comme ${nouveauStatut.replace('_', ' ')}`
       });
+
+      forceRefresh();
     } catch (error: any) {
+      console.error('Erreur complète:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -157,19 +110,21 @@ const CuisinierDashboard = () => {
     }
   };
 
-  const getStatusBadge = (statut: string) => {
+  const getStatusBadge = (statut: any) => {
     const statusConfig = {
-      nouveau: { label: "Nouveau", variant: "destructive" as const },
-      en_preparation: { label: "En préparation", variant: "warning" as const },
-      pret: { label: "Prêt", variant: "info" as const }
+      nouveau: { variant: "destructive" as const, label: "Nouveau", icon: Clock },
+      en_preparation: { variant: "warning" as const, label: "En préparation", icon: ChefHat },
+      pret: { variant: "success" as const, label: "Prêt", icon: CheckCircle }
     };
 
     const config = statusConfig[statut as keyof typeof statusConfig];
     if (!config) return null;
 
+    const Icon = config.icon;
     return (
-      <Badge variant={config.variant}>
-        {config.label}
+      <Badge variant={config.variant} className="flex items-center space-x-1">
+        <Icon className="h-3 w-3" />
+        <span>{config.label}</span>
       </Badge>
     );
   };
@@ -183,47 +138,46 @@ const CuisinierDashboard = () => {
     return types[type as keyof typeof types] || type;
   };
 
-  // Vérifier si une commande est mixte (contient des articles des deux commerces)
-  const isCommandeMixte = (commande: Commande) => {
-    const hasLSF = commande.commande_items.some(item => 
-      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
-    );
-    const hasDolce = commande.commande_items.some(item => 
+  const isCommandeMixte = (commande: any) => {
+    const hasDolce = commande.commande_items?.some(item => 
       ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
     );
-    return hasLSF && hasDolce;
-  };
-
-  // Filtrer les articles 961 LSF de la commande
-  const getItemsLSF = (commande: Commande) => {
-    return commande.commande_items.filter(item => 
+    const hasLSF = commande.commande_items?.some(item => 
       ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
     );
+    return hasDolce && hasLSF;
+  };
+
+  const getItemsLSF = (commande: any) => {
+    return commande.commande_items?.filter(item => 
+      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+    ) || [];
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center space-x-3">
-        <Sandwich className="h-8 w-8 text-orange-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord</h2>
+        <ChefHat className="h-8 w-8 text-red-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Cuisine 961 LSF</h2>
       </div>
 
       {/* Stats rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Nouvelles commandes</p>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-sm font-medium text-gray-600">Nouveau</p>
+                <p className="text-2xl font-bold text-red-600">
                   {commandes.filter(c => {
                     const itemsLSF = getItemsLSF(c);
                     const statutLSF = (c as any).statut_961_lsf || 'nouveau';
@@ -231,17 +185,17 @@ const CuisinierDashboard = () => {
                   }).length}
                 </p>
               </div>
-              <Clock className="h-8 w-8 text-orange-600" />
+              <Clock className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-2xl font-bold text-yellow-600">
                   {commandes.filter(c => {
                     const itemsLSF = getItemsLSF(c);
                     const statutLSF = (c as any).statut_961_lsf || 'nouveau';
@@ -249,16 +203,16 @@ const CuisinierDashboard = () => {
                   }).length}
                 </p>
               </div>
-              <ChefHat className="h-8 w-8 text-blue-600" />
+              <ChefHat className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Prêtes</p>
+                <p className="text-sm font-medium text-gray-600">Prêt</p>
                 <p className="text-2xl font-bold text-green-600">
                   {commandes.filter(c => {
                     const itemsLSF = getItemsLSF(c);
@@ -274,104 +228,119 @@ const CuisinierDashboard = () => {
       </div>
 
       {/* Liste des commandes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-gray-900">Commandes en cours</h3>
+        
         {commandes.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <Sandwich className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">Aucune commande en attente</p>
-          </div>
+          <Card>
+            <CardContent className="text-center py-12">
+              <Sandwich className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Aucune commande en cours</p>
+            </CardContent>
+          </Card>
         ) : (
-          commandes.map((commande) => {
-            const itemsLSF = getItemsLSF(commande);
-            const isMixte = isCommandeMixte(commande);
-            const statutLSF = (commande as any).statut_961_lsf || 'nouveau';
-            const isNouveau = statutLSF === 'nouveau';
-            
-            return (
-              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-orange-500'} ${isNouveau ? 'notification-alert' : ''}`}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {commandes.map((commande: any) => {
+              const itemsLSF = getItemsLSF(commande);
+              const statutLSF = (commande as any).statut_961_lsf || 'nouveau';
+              const isMixte = isCommandeMixte(commande);
+              const isNouveau = statutLSF === 'nouveau';
+
+              return (
+                <Card 
+                  key={commande.id} 
+                  className={`${isMixte ? 'border-l-4 border-l-purple-500' : 'border-l-4 border-l-red-500'} ${isNouveau ? 'notification-alert animate-pulse' : ''}`}
+                >
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {getTypeCommande(commande.type_commande)}
+                          {commande.clients?.nom && ` • ${commande.clients.nom}`}
+                        </p>
+                        {isMixte && (
+                          <Badge variant="outline" className="mt-1 bg-purple-50 text-purple-600 border-purple-200">
+                            Commande mixte
+                          </Badge>
+                        )}
+                      </div>
+                      {getStatusBadge(statutLSF)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Articles 961 LSF */}
                     <div>
-                      <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {getTypeCommande(commande.type_commande)}
-                        {commande.clients && ` • ${commande.clients.nom}`}
-                      </p>
-                      {isMixte && (
-                        <Badge variant="secondary" className="mt-2 text-xs">
-                          🍕🥪 Commande mixte
-                        </Badge>
-                      )}
+                      <h4 className="font-medium text-sm mb-2">Articles 961 LSF ({itemsLSF.length}):</h4>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {itemsLSF.map((item, index) => (
+                          <div key={index} className="flex justify-between items-center text-sm bg-red-50 p-2 rounded">
+                            <div className="flex-1">
+                              <span className="font-medium">{item.quantite}x</span> {formatProduitNom(item.produits.nom)}
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {item.produits.categorie}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    {getStatusBadge(commande.statut)}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Items 961 LSF */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Articles 961 LSF:</h4>
-                    <div className="space-y-1">
-                       {itemsLSF.map((item, index) => (
-                         <div key={index} className="flex justify-between items-center text-sm">
-                           <div className="flex-1">
-                             <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
-                           </div>
-                           <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
-                             {item.produits.categorie}
-                           </Badge>
-                         </div>
-                       ))}
-                    </div>
-                  </div>
 
-                  {/* Notes */}
-                  {commande.notes && (
-                    <div>
-                      <h4 className="font-medium text-sm mb-1">Notes:</h4>
-                      <p className="text-sm text-gray-600 bg-yellow-50 p-2 rounded">
-                        {commande.notes}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Temps */}
-                  <p className="text-xs text-gray-500">
-                    Commande passée: {new Date(commande.created_at).toLocaleString('fr-FR')}
-                  </p>
-
-                  {/* Actions */}
-                  <div className="flex space-x-2 pt-2">
-                    {((commande as any).statut_961_lsf || 'nouveau') === 'nouveau' && (
-                      <Button
-                        onClick={() => changerStatut(commande.id, 'en_preparation')}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        size="sm"
-                      >
-                        Commencer
-                      </Button>
-                    )}
-                    {((commande as any).statut_961_lsf || 'nouveau') === 'en_preparation' && (
-                      <Button
-                        onClick={() => changerStatut(commande.id, 'pret')}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        size="sm"
-                      >
-                        Terminé
-                      </Button>
-                    )}
-                    {((commande as any).statut_961_lsf || 'nouveau') === 'pret' && (
-                      <div className="flex-1 text-center py-2">
-                        <Badge variant="default" className="bg-green-600">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Prêt pour récupération
-                        </Badge>
+                    {/* Notes */}
+                    {commande.notes && (
+                      <div className="bg-yellow-50 p-2 rounded">
+                        <p className="text-sm"><strong>Notes:</strong> {commande.notes}</p>
                       </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+
+                    {/* Temps et actions */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">
+                            {new Date(commande.created_at).toLocaleTimeString('fr-FR')}
+                          </span>
+                          <span className="font-semibold">{commande.total.toFixed(2)}€</span>
+                        </div>
+
+                        {/* Actions selon le statut */}
+                        <div className="flex space-x-2">
+                          {statutLSF === 'nouveau' && (
+                            <Button
+                              onClick={() => changerStatut(commande.id, 'en_preparation')}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
+                              size="sm"
+                            >
+                              <ChefHat className="h-4 w-4 mr-1" />
+                              Commencer
+                            </Button>
+                          )}
+                          
+                          {statutLSF === 'en_preparation' && (
+                            <Button
+                              onClick={() => changerStatut(commande.id, 'pret')}
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              size="sm"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Terminer
+                            </Button>
+                          )}
+
+                          {statutLSF === 'pret' && (
+                            <div className="flex-1 text-center">
+                              <Badge variant="success" className="px-3 py-1">
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Prêt à servir
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -385,10 +354,10 @@ const CuisinierDashboard = () => {
         }}
         onAccept={() => {
           if (nouvelleCommande) {
-            changerStatut(nouvelleCommande.id, 'en_preparation');
+                            changerStatut(nouvelleCommande.id, 'en_preparation');
           }
         }}
-        title="Nouvelle commande 961 LSF reçue!"
+        title="Nouvelle commande 961 LSF!"
         acceptButtonText="Commencer la préparation"
         acceptButtonIcon={ChefHat}
       />
