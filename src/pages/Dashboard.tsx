@@ -4,7 +4,7 @@ import PizzaioloDashboard from "@/components/dashboard/PizzaioloDashboard";
 import CuisinierDashboard from "@/components/dashboard/CuisinierDashboard";
 import LivreurDashboard from "@/components/dashboard/LivreurDashboard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pizza, Sandwich } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const Dashboard = () => {
   const { role } = useParams<{ role: string }>();
@@ -40,24 +40,10 @@ const Dashboard = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                role === 'cuisinier' ? 'bg-orange-100' : 'bg-red-100'
-              }`}>
-                {role === 'cuisinier' ? (
-                  <Sandwich className="h-5 w-5 text-orange-600" />
-                ) : (
-                  <Pizza className="h-5 w-5 text-red-600" />
-                )}
-              </div>
-              <div>
-                <h1 className={`text-xl font-bold ${
-                  role === 'cuisinier' ? 'text-orange-800' : 'text-red-800'
-                }`}>
-                  {role === 'cuisinier' ? '961 LSF' : 'Dolce Italia'}
-                </h1>
-                <p className="text-sm text-gray-600">{getRoleName(role)}</p>
-              </div>
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-gray-800">
+                Dashboard | {getRoleName(role)}
+              </h1>
             </div>
             <div className="flex items-center space-x-3">
               <Button
