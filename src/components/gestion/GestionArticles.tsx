@@ -15,8 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
-  commerce: 'dolce_italia' | '961_lsf';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons';
   prix: number;
   disponible: boolean;
   created_at: string;
@@ -34,13 +33,11 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
-    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches',
-    commerce: 'dolce_italia' as 'dolce_italia' | '961_lsf',
+    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons',
     prix: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategorie, setFilterCategorie] = useState<string>('all');
-  const [filterCommerce, setFilterCommerce] = useState<string>('all');
   const [filterDisponible, setFilterDisponible] = useState<string>('all');
 
   const { toast } = useToast();
@@ -83,7 +80,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     setFormData({
       nom: '',
       categorie: 'pizzas',
-      commerce: 'dolce_italia',
       prix: ''
     });
     setEditingProduct(null);
@@ -120,7 +116,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .update({
             nom: formData.nom.trim(),
             categorie: formData.categorie,
-            commerce: formData.commerce,
             prix: prix
           })
           .eq('id', editingProduct.id);
@@ -138,7 +133,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .insert({
             nom: formData.nom.trim(),
             categorie: formData.categorie,
-            commerce: formData.commerce,
             prix: prix,
             disponible: true
           });
@@ -167,7 +161,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     setFormData({
       nom: product.nom,
       categorie: product.categorie,
-      commerce: product.commerce,
       prix: product.prix.toString()
     });
     setShowAddForm(true);
@@ -225,38 +218,24 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   };
 
   const categories = [
-    { key: 'pizzas', label: 'Pizzas', icon: '' },
-    { key: 'pates', label: 'Pâtes', icon: '' },
-    { key: 'desserts', label: 'Desserts', icon: '' },
-    { key: 'boissons', label: 'Boissons', icon: '' },
-    { key: 'entrees', label: 'Entrées', icon: '' },
-    { key: 'bowls_salades', label: 'Bowls & Salades', icon: '' },
-    { key: 'frites', label: 'Frites', icon: '' },
-    { key: 'sandwiches', label: 'Sandwiches', icon: '' }
-  ];
-
-  const commerces = [
-    { key: 'dolce_italia', label: 'Dolce Italia', icon: '' },
-    { key: '961_lsf', label: '961 LSF', icon: '' }
+    { key: 'pizzas', label: 'Pizzas', icon: '🍕' },
+    { key: 'pates', label: 'Pâtes', icon: '🍝' },
+    { key: 'desserts', label: 'Desserts', icon: '🍰' },
+    { key: 'boissons', label: 'Boissons', icon: '🥤' }
   ];
 
   const getCategoryInfo = (categorie: string) => {
     return categories.find(cat => cat.key === categorie) || { key: categorie, label: categorie, icon: '📦' };
   };
 
-  const getCommerceInfo = (commerce: string) => {
-    return commerces.find(c => c.key === commerce) || { key: commerce, label: commerce, icon: '🏪' };
-  };
-
   const filteredProducts = produits.filter(product => {
     const matchesSearch = product.nom.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategorie === 'all' || product.categorie === filterCategorie;
-    const matchesCommerce = filterCommerce === 'all' || product.commerce === filterCommerce;
     const matchesDisponible = filterDisponible === 'all' || 
       (filterDisponible === 'available' && product.disponible) ||
       (filterDisponible === 'unavailable' && !product.disponible);
     
-    return matchesSearch && matchesCategory && matchesCommerce && matchesDisponible;
+    return matchesSearch && matchesCategory && matchesDisponible;
   });
 
   if (isLoading) {
@@ -293,22 +272,8 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
               className="flex-1"
             />
             
-            <Select value={filterCommerce} onValueChange={setFilterCommerce}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Commerce" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
-                {commerces.map(commerce => (
-                  <SelectItem key={commerce.key} value={commerce.key}>
-                    {commerce.icon} {commerce.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             <Select value={filterCategorie} onValueChange={setFilterCategorie}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Catégorie" />
               </SelectTrigger>
               <SelectContent>
@@ -322,7 +287,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             </Select>
 
             <Select value={filterDisponible} onValueChange={setFilterDisponible}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-36">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -346,7 +311,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             ) : (
               filteredProducts.map((product) => {
                 const categoryInfo = getCategoryInfo(product.categorie);
-                const commerceInfo = getCommerceInfo(product.commerce);
                 
                 return (
                   <Card key={product.id} className="transition-all hover:shadow-md">
@@ -357,9 +321,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-medium truncate">{product.nom}</h3>
-                              <Badge variant="outline" className="text-xs flex-shrink-0">
-                                {commerceInfo.label}
-                              </Badge>
                               <Badge variant="outline" className="text-xs flex-shrink-0">
                                 {categoryInfo.label}
                               </Badge>
@@ -439,22 +400,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                 placeholder="Ex: Pizza Margherita"
                 required
               />
-            </div>
-
-            <div>
-              <Label htmlFor="commerce">Commerce *</Label>
-              <Select value={formData.commerce} onValueChange={(value: any) => setFormData({...formData, commerce: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {commerces.map(commerce => (
-                    <SelectItem key={commerce.key} value={commerce.key}>
-                      {commerce.icon} {commerce.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div>

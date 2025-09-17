@@ -13,7 +13,6 @@ interface Commande {
   id: string;
   numero_commande: string;
   type_commande: 'sur_place' | 'a_emporter' | 'livraison';
-  commerce_principal: 'dolce_italia' | '961_lsf';
   statut: 'nouveau' | 'en_preparation' | 'pret' | 'en_livraison' | 'livre' | 'termine';
   total: number;
   notes?: string;
@@ -26,353 +25,296 @@ interface Commande {
     produits: {
       nom: string;
       categorie: string;
-      commerce: string;
     };
   }>;
 }
 
 const PizzaioloDashboard = () => {
-  const [commandesNouvelles, setCommandesNouvelles] = useState<Commande[]>([]);
-  const [commandesEnCours, setCommandesEnCours] = useState<Commande[]>([]);
-  const [selectedCommande, setSelectedCommande] = useState<Commande | null>(null);
+  const [commandes, setCommandes] = useState<Commande[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  const fetchCommandesNouvelles = async () => {
+  const fetchCommandes = async () => {
     try {
       const { data, error } = await supabase
         .from('commandes')
         .select(`
           *,
-          clients(*),
-          commande_items(
+          clients (nom),
+          commande_items (
             quantite,
-            produits(nom, categorie, commerce)
+            produits (nom, categorie)
           )
         `)
-        .eq('statut', 'nouveau')
+        .in('statut', ['nouveau', 'en_preparation', 'pret'])
+        .neq('statut', 'termine')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-
-      // Filtrer pour ne garder que les commandes contenant des articles Dolce Italia
-      const commandesDolce = (data || []).filter(commande =>
-        commande.commande_items?.some((item: any) => item.produits?.commerce === 'dolce_italia')
-      );
-
-      setCommandesNouvelles(commandesDolce as Commande[]);
+      setCommandes(data || []);
     } catch (error: any) {
-      console.error('Erreur lors du chargement des nouvelles commandes:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de charger les nouvelles commandes"
+        description: "Impossible de charger les commandes"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const fetchCommandesEnCours = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients(*),
-          commande_items(
-            quantite,
-            produits(nom, categorie, commerce)
-          )
-        `)
-        .in('statut', ['en_preparation', 'pret'])
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      // Filtrer pour ne garder que les commandes contenant des articles Dolce Italia
-      const commandesDolce = (data || []).filter(commande =>
-        commande.commande_items?.some((item: any) => item.produits?.commerce === 'dolce_italia')
-      );
-
-      setCommandesEnCours(commandesDolce as Commande[]);
-    } catch (error: any) {
-      console.error('Erreur lors du chargement des commandes en cours:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les commandes en cours"
-      });
-    }
-  };
-
-  const loadData = async () => {
-    await Promise.all([
-      fetchCommandesNouvelles(),
-      fetchCommandesEnCours()
-    ]);
-  };
+  // Auto-refresh toutes les secondes
+  useAutoRefresh({ 
+    refreshFunction: fetchCommandes,
+    intervalMs: 1000,
+    enabled: true
+  });
 
   useEffect(() => {
-    loadData();
+    fetchCommandes();
   }, []);
 
-  useAutoRefresh({ refreshFunction: loadData, intervalMs: 3000 });
+  const fetchCommandeComplete = async (commandeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('commandes')
+        .select(`
+          *,
+          clients (nom, telephone, adresse),
+          commande_items (
+            quantite,
+            produits (nom, categorie)
+          )
+        `)
+        .eq('id', commandeId)
+        .single();
 
-  const accepterCommande = async (commandeId: string) => {
+      if (error) throw error;
+      if (data) {
+        setNouvelleCommande(data);
+        setShowModal(true);
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du chargement de la commande complète:', error);
+    }
+  };
+
+  const changerStatut = async (commandeId: string, nouveauStatut: 'nouveau' | 'en_preparation' | 'pret' | 'en_livraison' | 'livre' | 'termine') => {
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ statut: 'en_preparation' })
+        .update({ statut: nouveauStatut })
         .eq('id', commandeId);
 
       if (error) throw error;
 
       toast({
-        title: "Commande acceptée",
-        description: "La commande est maintenant en préparation"
+        title: "Statut mis à jour",
+        description: `Commande marquée comme ${nouveauStatut.replace('_', ' ')}`
       });
-
-      await loadData();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'accepter la commande"
+        description: "Impossible de mettre à jour le statut"
       });
     }
   };
 
-  const marquerPrete = async (commandeId: string) => {
-    try {
-      const { error } = await supabase
-        .from('commandes')
-        .update({ statut: 'pret' })
-        .eq('id', commandeId);
+  const getStatusBadge = (statut: string) => {
+    const statusConfig = {
+      nouveau: { label: "Nouveau", variant: "destructive" as const },
+      en_preparation: { label: "En préparation", variant: "warning" as const },
+      pret: { label: "Prêt", variant: "info" as const }
+    };
 
-      if (error) throw error;
+    const config = statusConfig[statut as keyof typeof statusConfig];
+    if (!config) return null;
 
-      toast({
-        title: "Commande prête",
-        description: "La commande a été marquée comme prête"
-      });
-
-      await loadData();
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de marquer la commande comme prête"
-      });
-    }
+    return (
+      <Badge variant={config.variant}>
+        {config.label}
+      </Badge>
+    );
   };
 
-  const openCommandeModal = (commande: Commande) => {
-    setSelectedCommande(commande);
-    setShowModal(true);
+  const getTypeCommande = (type: string) => {
+    const types = {
+      sur_place: "Sur place",
+      a_emporter: "À emporter", 
+      livraison: "Livraison"
+    };
+    return types[type as keyof typeof types] || type;
   };
 
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case 'sur_place': return 'default';
-      case 'a_emporter': return 'secondary';
-      case 'livraison': return 'destructive';
-      default: return 'outline';
-    }
-  };
-
-  const hasMultipleCommerces = (commande: Commande) => {
-    const commerces = new Set(commande.commande_items?.map(item => item.produits?.commerce) || []);
-    return commerces.size > 1;
-  };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold flex items-center">
-          <ChefHat className="mr-3 h-8 w-8 text-primary" />
-          Pizzaiolo - Dolce Italia
-        </h1>
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3">
+        <ChefHat className="h-8 w-8 text-red-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Pizzaiolo</h2>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Nouvelles commandes */}
+      {/* Stats rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Nouvelles commandes</span>
-              <Badge variant="destructive" className="animate-pulse">
-                {commandesNouvelles.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {commandesNouvelles.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Aucune nouvelle commande
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Nouvelles commandes</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {commandes.filter(c => c.statut === 'nouveau').length}
                 </p>
-              ) : (
-                commandesNouvelles.map((commande) => (
-                  <Card 
-                    key={commande.id} 
-                    className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-red-500"
-                    onClick={() => openCommandeModal(commande)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-bold text-lg">{commande.numero_commande}</h3>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant={getTypeBadgeVariant(commande.type_commande)}>
-                              {commande.type_commande.replace('_', ' ')}
-                            </Badge>
-                            {hasMultipleCommerces(commande) && (
-                              <Badge variant="outline" className="text-orange-600 border-orange-600">
-                                Commande mixte
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-primary">{commande.total.toFixed(2)}€</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(commande.created_at).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        {commande.commande_items
-                          ?.filter(item => item.produits?.commerce === 'dolce_italia')
-                          .map((item, index) => (
-                          <div key={index} className="text-sm bg-red-50 p-2 rounded border-l-2 border-red-400">
-                            <span className="font-medium">
-                              {item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="flex space-x-2 mt-3">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            accepterCommande(commande.id);
-                          }}
-                          className="flex-1"
-                          size="sm"
-                        >
-                          <ChefHat className="h-4 w-4 mr-1" />
-                          Accepter
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+              </div>
+              <Clock className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
-
-        {/* Commandes en cours */}
+        
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>En préparation</span>
-              <Badge variant="secondary">
-                {commandesEnCours.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {commandesEnCours.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Aucune commande en cours
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">En préparation</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {commandes.filter(c => c.statut === 'en_preparation').length}
                 </p>
-              ) : (
-                commandesEnCours.map((commande) => (
-                  <Card 
-                    key={commande.id} 
-                    className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
-                      commande.statut === 'pret' ? 'border-l-green-500' : 'border-l-yellow-500'
-                    }`}
-                    onClick={() => openCommandeModal(commande)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-bold text-lg">{commande.numero_commande}</h3>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant={getTypeBadgeVariant(commande.type_commande)}>
-                              {commande.type_commande.replace('_', ' ')}
-                            </Badge>
-                            <Badge variant={commande.statut === 'pret' ? 'default' : 'secondary'}>
-                              {commande.statut === 'pret' ? 'Prêt' : 'En cours'}
-                            </Badge>
-                            {hasMultipleCommerces(commande) && (
-                              <Badge variant="outline" className="text-orange-600 border-orange-600">
-                                Mixte
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-primary">{commande.total.toFixed(2)}€</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(commande.created_at).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        {commande.commande_items
-                          ?.filter(item => item.produits?.commerce === 'dolce_italia')
-                          .map((item, index) => (
-                          <div key={index} className="text-sm bg-red-50 p-2 rounded border-l-2 border-red-400">
-                            <span className="font-medium">
-                              {item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {commande.statut === 'en_preparation' && (
-                        <div className="flex space-x-2 mt-3">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              marquerPrete(commande.id);
-                            }}
-                            className="flex-1"
-                            size="sm"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Marquer prêt
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+              </div>
+              <ChefHat className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Prêtes</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {commandes.filter(c => c.statut === 'pret').length}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Modal de détail */}
+      {/* Liste des commandes */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {commandes.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <ChefHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">Aucune commande en attente</p>
+          </div>
+        ) : (
+          commandes.map((commande) => (
+            <Card key={commande.id} className="border-l-4 border-l-red-500">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {getTypeCommande(commande.type_commande)}
+                      {commande.clients && ` • ${commande.clients.nom}`}
+                    </p>
+                  </div>
+                  {getStatusBadge(commande.statut)}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Items de la commande */}
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Articles:</h4>
+                  <div className="space-y-1">
+                     {commande.commande_items.map((item, index) => (
+                       <div key={index} className="flex justify-between items-center text-sm">
+                         <div className="flex-1">
+                           <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                         </div>
+                         <Badge variant="outline" className="text-xs">
+                           {item.produits.categorie}
+                         </Badge>
+                       </div>
+                     ))}
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {commande.notes && (
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">Notes:</h4>
+                    <p className="text-sm text-gray-600 bg-yellow-50 p-2 rounded">
+                      {commande.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Temps */}
+                <p className="text-xs text-gray-500">
+                  Commande passée: {new Date(commande.created_at).toLocaleString('fr-FR')}
+                </p>
+
+                {/* Actions */}
+                <div className="flex space-x-2 pt-2">
+                  {commande.statut === 'nouveau' && (
+                    <Button
+                      onClick={() => changerStatut(commande.id, 'en_preparation')}
+                      className="flex-1 bg-orange-600 hover:bg-orange-700"
+                      size="sm"
+                    >
+                      Commencer
+                    </Button>
+                  )}
+                  {commande.statut === 'en_preparation' && (
+                    <Button
+                      onClick={() => changerStatut(commande.id, 'pret')}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      size="sm"
+                    >
+                      Terminé
+                    </Button>
+                  )}
+                  {commande.statut === 'pret' && (
+                    <div className="flex-1 text-center py-2">
+                      <Badge variant="default" className="bg-green-600">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Prêt pour récupération
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Modale pour nouvelles commandes */}
       <NouvelleCommandeModal
-        commande={selectedCommande}
+        commande={nouvelleCommande}
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Détails de la commande"
-        acceptButtonText="Fermer"
+        onClose={() => {
+          setShowModal(false);
+          setNouvelleCommande(null);
+        }}
+        onAccept={() => {
+          if (nouvelleCommande) {
+            changerStatut(nouvelleCommande.id, 'en_preparation');
+          }
+        }}
+        title="Nouvelle commande reçue!"
+        acceptButtonText="Commencer la préparation"
+        acceptButtonIcon={ChefHat}
       />
     </div>
   );

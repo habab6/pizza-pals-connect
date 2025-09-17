@@ -14,7 +14,6 @@ interface Commande {
   id: string;
   numero_commande: string;
   type_commande: 'sur_place' | 'a_emporter' | 'livraison';
-  commerce_principal: 'dolce_italia' | '961_lsf';
   statut: string;
   total: number;
   notes?: string;
@@ -30,7 +29,6 @@ interface Commande {
     produits: {
       nom: string;
       categorie: string;
-      commerce: string;
     };
   }>;
 }
@@ -39,125 +37,138 @@ const LivreurDashboard = () => {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [mesLivraisons, setMesLivraisons] = useState<Commande[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCommande, setSelectedCommande] = useState<Commande | null>(null);
+  const [nouvelleLivraison, setNouvelleLivraison] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [showPaiementModal, setShowPaiementModal] = useState(false);
-  const [modePaiement, setModePaiement] = useState<'cash' | 'bancontact' | 'visa' | 'mastercard'>('cash');
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [commandeToDeliver, setCommandeToDeliver] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
+  
+  // Profil du livreur (si connecté)
+  const [livreurProfileId, setLivreurProfileId] = useState<string | null>(null);
 
-  const fetchUserProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        setUserProfile(profile);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) {
+        setLivreurProfileId(null);
+        return;
       }
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error);
-    }
-  };
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('user_id', user.id)
+        .eq('role', 'livreur')
+        .single();
+      setLivreurProfileId(profile?.id ?? null);
+    };
+    fetchProfile();
+  }, []);
 
-  const fetchCommandes = async () => {
+  
+
+  const fetchCommandes = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Commandes prêtes pour livraison (non assignées)
+      const { data: commandesDisponibles, error: error1 } = await supabase
         .from('commandes')
         .select(`
           *,
-          clients(*),
-          commande_items(
+          clients (nom, telephone, adresse),
+          commande_items (
             quantite,
-            produits(nom, categorie, commerce)
+            produits (nom, categorie)
           )
         `)
-        .eq('statut', 'nouveau')
-        .in('type_commande', ['livraison'])
+        .eq('type_commande', 'livraison')
+        .eq('statut', 'pret')
+        .is('livreur_id', null)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setCommandes(data || []);
+      // Mes livraisons en cours
+      let mesLivraisonsData = null;
+      let error2 = null as any;
+      if (livreurProfileId) {
+        const res = await supabase
+          .from('commandes')
+          .select(`
+            *,
+            clients (nom, telephone, adresse),
+            commande_items (
+              quantite,
+              produits (nom, categorie)
+            )
+          `)
+          .eq('livreur_id', livreurProfileId)
+          .in('statut', ['en_livraison'])
+          .order('created_at', { ascending: true });
+        mesLivraisonsData = res.data;
+        error2 = res.error;
+      } else {
+        const res = await supabase
+          .from('commandes')
+          .select(`
+            *,
+            clients (nom, telephone, adresse),
+           commande_items (
+             quantite,
+             produits (nom, categorie)
+           )
+          `)
+          .is('livreur_id', null)
+          .in('statut', ['en_livraison'])
+          .order('created_at', { ascending: true });
+        mesLivraisonsData = res.data;
+        error2 = res.error;
+      }
+
+      if (error1) throw error1;
+      if (error2) throw error2;
+
+      setCommandes(commandesDisponibles || []);
+      setMesLivraisons(mesLivraisonsData || []);
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de charger les commandes"
       });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [livreurProfileId, toast]);
 
-  const fetchMesLivraisons = async () => {
-    if (!userProfile?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients(*),
-          commande_items(
-            quantite,
-            produits(nom, categorie, commerce)
-          )
-        `)
-        .eq('livreur_id', userProfile.id)
-        .in('statut', ['en_livraison'])
-        .in('type_commande', ['livraison'])
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMesLivraisons(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger vos livraisons"
-      });
-    }
-  };
-
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    await Promise.all([
-      fetchCommandes(),
-      fetchMesLivraisons()
-    ]);
-    setIsLoading(false);
-  }, [userProfile]);
+  // Auto-refresh toutes les secondes
+  useAutoRefresh({ 
+    refreshFunction: fetchCommandes,
+    intervalMs: 1000,
+    enabled: true
+  });
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  useEffect(() => {
-    if (userProfile) {
-      loadData();
-    }
-  }, [userProfile, loadData]);
-
-  useAutoRefresh({ refreshFunction: loadData, intervalMs: 5000 });
+    fetchCommandes();
+  }, [fetchCommandes]);
 
   const accepterLivraison = async (commandeId: string) => {
     try {
+      let updateData: any = { statut: 'en_livraison' };
+      if (livreurProfileId) {
+        updateData.livreur_id = livreurProfileId;
+      }
       const { error } = await supabase
         .from('commandes')
-        .update({ 
-          statut: 'en_livraison',
-          livreur_id: userProfile.id
-        })
+        .update(updateData)
         .eq('id', commandeId);
 
       if (error) throw error;
 
       toast({
         title: "Livraison acceptée",
-        description: "La commande est maintenant en cours de livraison"
+        description: "La commande a été assignée à vous"
       });
 
-      await loadData();
+      fetchCommandes();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -167,38 +178,41 @@ const LivreurDashboard = () => {
     }
   };
 
-  const openCommandeModal = (commande: Commande) => {
-    setSelectedCommande(commande);
-    setShowModal(true);
+  const marquerLivre = async (commandeId: string) => {
+    setCommandeToDeliver(commandeId);
+    setShowPaymentModal(true);
   };
 
-  const openPaiementModal = (commande: Commande) => {
-    setSelectedCommande(commande);
-    setShowPaiementModal(true);
-  };
-
-  const terminerLivraison = async () => {
-    if (!selectedCommande) return;
+  const confirmerPaiementLivraison = async () => {
+    if (!commandeToDeliver || !selectedPaymentMethod) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner un mode de paiement"
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('commandes')
         .update({ 
-          statut: 'livre',
-          mode_paiement: modePaiement
+          statut: 'termine',
+          mode_paiement: selectedPaymentMethod as any
         })
-        .eq('id', selectedCommande.id);
+        .eq('id', commandeToDeliver);
 
       if (error) throw error;
 
       toast({
         title: "Livraison terminée",
-        description: "La commande a été livrée avec succès"
+        description: `Commande marquée comme livrée avec paiement ${getPaymentMethodLabel(selectedPaymentMethod)}`
       });
 
-      setShowPaiementModal(false);
-      setSelectedCommande(null);
-      await loadData();
+      setShowPaymentModal(false);
+      setCommandeToDeliver(null);
+      setSelectedPaymentMethod("");
+      fetchCommandes();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -208,353 +222,330 @@ const LivreurDashboard = () => {
     }
   };
 
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case 'sur_place': return 'default';
-      case 'a_emporter': return 'secondary';
-      case 'livraison': return 'destructive';
-      default: return 'outline';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'sur_place': return '🍽️';
-      case 'a_emporter': return '📦';
-      case 'livraison': return '🚚';
-      default: return '📋';
-    }
-  };
-
-  const getCommerceInfo = (commerce: string) => {
-    switch (commerce) {
-      case 'dolce_italia': return { label: 'Dolce Italia', icon: '🍕', color: 'red' };
-      case '961_lsf': return { label: '961 LSF', icon: '🥪', color: 'green' };
-      default: return { label: commerce, icon: '🏪', color: 'gray' };
-    }
-  };
-
-  const hasMultipleCommerces = (commande: Commande) => {
-    const commerces = new Set(commande.commande_items?.map(item => item.produits?.commerce) || []);
-    return commerces.size > 1;
-  };
-
-  const groupItemsByCommerce = (items: any[]) => {
-    const grouped = {
-      dolce_italia: items.filter(item => item.produits?.commerce === 'dolce_italia'),
-      '961_lsf': items.filter(item => item.produits?.commerce === '961_lsf')
+  const getPaymentMethodLabel = (method: string) => {
+    const methods = {
+      bancontact: "Bancontact",
+      visa: "Visa", 
+      mastercard: "Mastercard",
+      cash: "Espèces"
     };
-    return grouped;
+    return methods[method as keyof typeof methods] || method;
+  };
+
+  const fetchCommandeComplete = async (commandeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('commandes')
+        .select(`
+          *,
+          clients (nom, telephone, adresse),
+          commande_items (
+            quantite,
+            produits (nom, categorie)
+          )
+        `)
+        .eq('id', commandeId)
+        .single();
+
+      if (error) throw error;
+      if (data && data.type_commande === 'livraison') {
+        setNouvelleLivraison(data);
+        setShowModal(true);
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du chargement de la commande complète:', error);
+    }
+  };
+
+  const ouvrirMaps = (adresse: string) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`;
+    window.open(url, '_blank');
+  };
+
+  const appelerClient = (telephone: string) => {
+    window.open(`tel:${telephone}`, '_self');
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold flex items-center">
-          <Truck className="mr-3 h-8 w-8 text-primary" />
-          Dashboard Livreur
-        </h1>
-        <div className="text-sm text-muted-foreground">
-          Connexion: {userProfile?.nom}
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3">
+        <Truck className="h-8 w-8 text-red-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Livreur</h2>
+      </div>
+
+      {/* Stats rapides */}
+      <div className="grid grid-cols-1 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Livraisons disponibles</p>
+                <p className="text-2xl font-bold text-red-600">{commandes.length}</p>
+              </div>
+              <Clock className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Mes livraisons en cours */}
+      {mesLivraisons.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-gray-900">Mes livraisons en cours</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {mesLivraisons.map((commande) => (
+              <Card key={commande.id} className="border-l-4 border-l-orange-500">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">Client: {commande.clients.nom}</p>
+                    </div>
+                    <Badge variant="warning">En livraison</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Contact client */}
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => appelerClient(commande.clients.telephone)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1 flex-1"
+                    >
+                      <Phone className="h-4 w-4" />
+                      <span>{commande.clients.telephone}</span>
+                    </Button>
+                    <Button
+                      onClick={() => ouvrirMaps(commande.clients.adresse)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center space-x-1 flex-1"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      <span>GPS</span>
+                    </Button>
+                  </div>
+
+                  {/* Adresse */}
+                  <div className="bg-gray-50 p-3 rounded">
+                    <p className="text-sm font-medium mb-1">Adresse de livraison:</p>
+                    <p className="text-sm text-gray-700">{commande.clients.adresse}</p>
+                  </div>
+
+                  {/* Items */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">Articles ({commande.commande_items.length}):</h4>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                       {commande.commande_items.map((item, index) => (
+                         <div key={index} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                           <div className="flex-1">
+                             <span>{item.quantite}x {item.produits.nom}</span>
+                           </div>
+                           <Badge variant="outline" className="text-xs">
+                             {item.produits.categorie}
+                           </Badge>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+
+                  {/* Total et notes */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total: {commande.total.toFixed(2)}€</span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(commande.created_at).toLocaleTimeString('fr-FR')}
+                    </span>
+                  </div>
+
+                  {commande.notes && (
+                    <div className="bg-yellow-50 p-2 rounded">
+                      <p className="text-sm"><strong>Notes:</strong> {commande.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Action */}
+                  <Button
+                    onClick={() => marquerLivre(commande.id)}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Marquer comme livré
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Livraisons disponibles */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-gray-900">Livraisons disponibles</h3>
+        
+        {commandes.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <Truck className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Aucune livraison disponible</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {commandes.map((commande) => (
+              <Card key={commande.id} className="border-l-4 border-l-red-500">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">Client: {commande.clients.nom}</p>
+                    </div>
+                    <Badge variant="info">Prêt</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Infos de contact */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span>{commande.clients.telephone}</span>
+                    </div>
+                    <div className="flex items-start space-x-2 text-sm">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <span className="flex-1">{commande.clients.adresse}</span>
+                    </div>
+                  </div>
+
+                  {/* Items (aperçu) */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">
+                      Articles ({commande.commande_items.length}):
+                    </h4>
+                     <div className="space-y-1">
+                       {commande.commande_items.slice(0, 2).map((item, index) => (
+                         <div key={index} className="flex justify-between items-center text-sm">
+                           <span>{item.quantite}x {item.produits.nom}</span>
+                           <Badge variant="outline" className="text-xs">
+                             {item.produits.categorie}
+                           </Badge>
+                         </div>
+                       ))}
+                       {commande.commande_items.length > 2 && (
+                         <p className="text-sm text-gray-500">+{commande.commande_items.length - 2} autre(s)</p>
+                       )}
+                     </div>
+                  </div>
+
+                  {/* Total et heure */}
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-semibold">Total: {commande.total.toFixed(2)}€</span>
+                    <span className="text-gray-500">
+                      Prêt depuis {new Date(commande.created_at).toLocaleTimeString('fr-FR')}
+                    </span>
+                  </div>
+
+                  {/* Action */}
+                  <Button
+                    onClick={() => accepterLivraison(commande.id)}
+                    className="w-full bg-red-600 hover:bg-red-700"
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    Accepter cette livraison
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Nouvelles livraisons disponibles */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>🚚 Livraisons disponibles</span>
-              <Badge variant="destructive" className="animate-pulse">
-                {commandes.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {commandes.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Aucune livraison disponible
-                </p>
-              ) : (
-                commandes.map((commande) => {
-                  const groupedItems = groupItemsByCommerce(commande.commande_items || []);
-                  const isMultiCommerce = hasMultipleCommerces(commande);
-                  
-                  return (
-                    <Card 
-                      key={commande.id} 
-                      className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
-                      onClick={() => openCommandeModal(commande)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-bold text-lg">{commande.numero_commande}</h3>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant={getTypeBadgeVariant(commande.type_commande)}>
-                                {getTypeIcon(commande.type_commande)} {commande.type_commande.replace('_', ' ')}
-                              </Badge>
-                              {isMultiCommerce && (
-                                <Badge variant="outline" className="text-orange-600 border-orange-600">
-                                  🔗 Commande mixte
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-primary">{commande.total.toFixed(2)}€</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(commande.created_at).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Informations client */}
-                        <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-1">
-                              <p className="font-medium">{commande.clients?.nom}</p>
-                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                                <Phone className="h-3 w-3" />
-                                <span>{commande.clients?.telephone}</span>
-                              </div>
-                              <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{commande.clients?.adresse}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Articles par commerce */}
-                        <div className="space-y-2">
-                          {groupedItems.dolce_italia.length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-red-600 mb-1">🍕 Dolce Italia:</p>
-                              {groupedItems.dolce_italia.map((item, index) => (
-                                <div key={`dolce-${index}`} 
-                                     className="text-sm bg-red-50 p-2 rounded border-l-2 border-red-400">
-                                  {item.quantite}x {item.produits.nom}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {groupedItems['961_lsf'].length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-green-600 mb-1">🥪 961 LSF:</p>
-                              {groupedItems['961_lsf'].map((item, index) => (
-                                <div key={`lsf-${index}`} 
-                                     className="text-sm bg-green-50 p-2 rounded border-l-2 border-green-400">
-                                  {item.quantite}x {item.produits.nom}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex space-x-2 mt-3">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              accepterLivraison(commande.id);
-                            }}
-                            className="flex-1"
-                            size="sm"
-                          >
-                            <Truck className="h-4 w-4 mr-1" />
-                            Accepter la livraison
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Mes livraisons en cours */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>🏃‍♂️ Mes livraisons</span>
-              <Badge variant="secondary">
-                {mesLivraisons.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {mesLivraisons.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Aucune livraison en cours
-                </p>
-              ) : (
-                mesLivraisons.map((commande) => {
-                  const groupedItems = groupItemsByCommerce(commande.commande_items || []);
-                  const isMultiCommerce = hasMultipleCommerces(commande);
-                  
-                  return (
-                    <Card 
-                      key={commande.id} 
-                      className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-green-500"
-                      onClick={() => openCommandeModal(commande)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-bold text-lg">{commande.numero_commande}</h3>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant="default">
-                                🚚 En livraison
-                              </Badge>
-                              {isMultiCommerce && (
-                                <Badge variant="outline" className="text-orange-600 border-orange-600">
-                                  🔗 Mixte
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-primary">{commande.total.toFixed(2)}€</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(commande.created_at).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Informations client */}
-                        <div className="bg-green-50 p-3 rounded-lg mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-1">
-                              <p className="font-medium">{commande.clients?.nom}</p>
-                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                                <Phone className="h-3 w-3" />
-                                <span>{commande.clients?.telephone}</span>
-                              </div>
-                              <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{commande.clients?.adresse}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Articles par commerce */}
-                        <div className="space-y-2">
-                          {groupedItems.dolce_italia.length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-red-600 mb-1">🍕 Dolce Italia:</p>
-                              {groupedItems.dolce_italia.map((item, index) => (
-                                <div key={`dolce-${index}`} 
-                                     className="text-sm bg-red-50 p-2 rounded border-l-2 border-red-400">
-                                  {item.quantite}x {item.produits.nom}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {groupedItems['961_lsf'].length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-green-600 mb-1">🥪 961 LSF:</p>
-                              {groupedItems['961_lsf'].map((item, index) => (
-                                <div key={`lsf-${index}`} 
-                                     className="text-sm bg-green-50 p-2 rounded border-l-2 border-green-400">
-                                  {item.quantite}x {item.produits.nom}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex space-x-2 mt-3">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPaiementModal(commande);
-                            }}
-                            className="flex-1"
-                            size="sm"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Livraison effectuée
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Modal de détail */}
+      {/* Modale pour nouvelles livraisons */}
       <NouvelleCommandeModal
-        commande={selectedCommande}
+        commande={nouvelleLivraison}
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Détails de la commande"
-        acceptButtonText="Fermer"
+        onClose={() => {
+          setShowModal(false);
+          setNouvelleLivraison(null);
+        }}
+        onAccept={() => {
+          if (nouvelleLivraison) {
+            accepterLivraison(nouvelleLivraison.id);
+          }
+        }}
+        title="Nouvelle livraison disponible!"
+        acceptButtonText="Accepter cette livraison"
+        acceptButtonIcon={Truck}
       />
 
-      {/* Modal de paiement */}
-      <Dialog open={showPaiementModal} onOpenChange={setShowPaiementModal}>
-        <DialogContent>
+      {/* Modal de sélection du mode de paiement */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmer la livraison</DialogTitle>
+            <DialogTitle className="flex items-center space-x-2">
+              <CreditCard className="h-5 w-5" />
+              <span>Mode de paiement</span>
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p>Commande: <strong>{selectedCommande?.numero_commande}</strong></p>
-            <p>Total: <strong>{selectedCommande?.total.toFixed(2)}€</strong></p>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Mode de paiement:</label>
-              <Select value={modePaiement} onValueChange={(value: any) => setModePaiement(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">💵 Espèces</SelectItem>
-                  <SelectItem value="bancontact">💳 Bancontact</SelectItem>
-                  <SelectItem value="visa">💳 Visa</SelectItem>
-                  <SelectItem value="mastercard">💳 Mastercard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex space-x-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowPaiementModal(false)}
-                className="flex-1"
+            <p className="text-sm text-gray-600">
+              Sélectionnez le mode de paiement reçu du client :
+            </p>
+            <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir un mode de paiement" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bancontact">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Bancontact</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="visa">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Visa</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="mastercard">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Mastercard</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="cash">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">💵</span>
+                    <span>Espèces</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex space-x-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setCommandeToDeliver(null);
+                  setSelectedPaymentMethod("");
+                }}
               >
                 Annuler
               </Button>
-              <Button
-                onClick={terminerLivraison}
-                className="flex-1"
+              <Button 
+                onClick={confirmerPaiementLivraison}
+                disabled={!selectedPaymentMethod}
+                className="bg-green-600 hover:bg-green-700"
               >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Confirmer la livraison  
+                Confirmer la livraison
               </Button>
             </div>
           </div>

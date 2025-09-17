@@ -16,10 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
-  commerce: 'dolce_italia' | '961_lsf';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons';
   prix: number;
-  disponible: boolean;
 }
 
 interface CartItem {
@@ -227,8 +225,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           caissier_id: null,
           total: calculerTotal(),
           notes: notesGenerales.trim() || null,
-          numero_commande: `CMD${Date.now()}`,
-          commerce_principal: 'dolce_italia' // Valeur par défaut, le trigger la mettra à jour
+          numero_commande: `CMD${Date.now()}`
         })
         .select()
         .single();
