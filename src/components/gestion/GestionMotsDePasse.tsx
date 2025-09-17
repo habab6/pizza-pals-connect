@@ -154,14 +154,6 @@ const GestionMotsDePasse = ({ onClose }: GestionMotsDePasseProps) => {
         </Button>
       </div>
 
-      <Alert>
-        <Lock className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Master Password:</strong> "DI961LSF" fonctionne pour tous les postes.<br/>
-          Vous pouvez définir des mots de passe spécifiques pour chaque poste ci-dessous.
-        </AlertDescription>
-      </Alert>
-
       <div className="grid gap-4">
         {postes.map((poste) => (
           <Card key={poste.poste_id}>
@@ -218,12 +210,6 @@ const GestionMotsDePasse = ({ onClose }: GestionMotsDePasseProps) => {
         ))}
       </div>
 
-      <Alert>
-        <AlertDescription>
-          <strong>Note de sécurité:</strong> Les mots de passe sont chiffrés et stockés de manière sécurisée. 
-          Le master password "DI961LSF" reste toujours actif pour tous les postes.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 };
