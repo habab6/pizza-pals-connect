@@ -103,7 +103,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {role === 'caissier' && <CaissierDashboard />}
-        {role === 'pizzaiolo' && <PizzaioloDashboard userProfile={userProfile} />}
+        {role === 'pizzaiolo' && <PizzaioloDashboard />}
         {role === 'cuisinier' && <CuisinierDashboard userProfile={userProfile} />}
         {role === 'livreur' && <LivreurDashboard />}
       </main>

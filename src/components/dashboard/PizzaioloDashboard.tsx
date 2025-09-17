@@ -31,11 +31,7 @@ interface Commande {
   }>;
 }
 
-interface PizzaioloDashboardProps {
-  userProfile: any;
-}
-
-const PizzaioloDashboard = ({ userProfile }: PizzaioloDashboardProps) => {
+const PizzaioloDashboard = () => {
   const [commandesNouvelles, setCommandesNouvelles] = useState<Commande[]>([]);
   const [commandesEnCours, setCommandesEnCours] = useState<Commande[]>([]);
   const [selectedCommande, setSelectedCommande] = useState<Commande | null>(null);
@@ -125,10 +121,7 @@ const PizzaioloDashboard = ({ userProfile }: PizzaioloDashboardProps) => {
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ 
-          statut: 'en_preparation',
-          pizzaiolo_id: userProfile?.id
-        })
+        .update({ statut: 'en_preparation' })
         .eq('id', commandeId);
 
       if (error) throw error;
@@ -198,9 +191,6 @@ const PizzaioloDashboard = ({ userProfile }: PizzaioloDashboardProps) => {
           <ChefHat className="mr-3 h-8 w-8 text-primary" />
           Pizzaiolo - Dolce Italia
         </h1>
-        <div className="text-sm text-muted-foreground">
-          Connexion: {userProfile?.nom}
-        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
