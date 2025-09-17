@@ -138,7 +138,7 @@ const LivreurDashboard = () => {
     }
   }, [userProfile, loadData]);
 
-  useAutoRefresh(loadData, 5000);
+  useAutoRefresh({ refreshFunction: loadData, intervalMs: 5000 });
 
   const accepterLivraison = async (commandeId: string) => {
     try {

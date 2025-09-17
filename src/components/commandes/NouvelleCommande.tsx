@@ -16,8 +16,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
+  commerce: 'dolce_italia' | '961_lsf';
   prix: number;
+  disponible: boolean;
 }
 
 interface CartItem {

@@ -109,7 +109,7 @@ const CuisinierDashboard = ({ userProfile }: CuisinierDashboardProps) => {
     loadData();
   }, []);
 
-  useAutoRefresh(loadData, 3000);
+  useAutoRefresh({ refreshFunction: loadData, intervalMs: 3000 });
 
   const accepterCommande = async (commandeId: string) => {
     try {

@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
   commerce: 'dolce_italia' | '961_lsf';
   prix: number;
   disponible: boolean;
@@ -34,7 +34,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
-    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons',
+    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches',
     commerce: 'dolce_italia' as 'dolce_italia' | '961_lsf',
     prix: ''
   });
@@ -225,15 +225,19 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   };
 
   const categories = [
-    { key: 'pizzas', label: 'Pizzas', icon: '🍕' },
-    { key: 'pates', label: 'Pâtes', icon: '🍝' },
-    { key: 'desserts', label: 'Desserts', icon: '🍰' },
-    { key: 'boissons', label: 'Boissons', icon: '🥤' }
+    { key: 'pizzas', label: 'Pizzas', icon: '' },
+    { key: 'pates', label: 'Pâtes', icon: '' },
+    { key: 'desserts', label: 'Desserts', icon: '' },
+    { key: 'boissons', label: 'Boissons', icon: '' },
+    { key: 'entrees', label: 'Entrées', icon: '' },
+    { key: 'bowls_salades', label: 'Bowls & Salades', icon: '' },
+    { key: 'frites', label: 'Frites', icon: '' },
+    { key: 'sandwiches', label: 'Sandwiches', icon: '' }
   ];
 
   const commerces = [
-    { key: 'dolce_italia', label: 'Dolce Italia', icon: '🍕' },
-    { key: '961_lsf', label: '961 LSF', icon: '🥪' }
+    { key: 'dolce_italia', label: 'Dolce Italia', icon: '' },
+    { key: '961_lsf', label: '961 LSF', icon: '' }
   ];
 
   const getCategoryInfo = (categorie: string) => {

@@ -296,7 +296,15 @@ export type Database = {
         | "termine"
       order_type: "sur_place" | "a_emporter" | "livraison"
       payment_method: "bancontact" | "visa" | "mastercard" | "cash"
-      product_category: "pizzas" | "pates" | "desserts" | "boissons"
+      product_category:
+        | "pizzas"
+        | "pates"
+        | "desserts"
+        | "boissons"
+        | "entrees"
+        | "bowls_salades"
+        | "frites"
+        | "sandwiches"
       user_role: "caissier" | "pizzaiolo" | "livreur" | "cuisinier"
     }
     CompositeTypes: {
@@ -436,7 +444,16 @@ export const Constants = {
       ],
       order_type: ["sur_place", "a_emporter", "livraison"],
       payment_method: ["bancontact", "visa", "mastercard", "cash"],
-      product_category: ["pizzas", "pates", "desserts", "boissons"],
+      product_category: [
+        "pizzas",
+        "pates",
+        "desserts",
+        "boissons",
+        "entrees",
+        "bowls_salades",
+        "frites",
+        "sandwiches",
+      ],
       user_role: ["caissier", "pizzaiolo", "livreur", "cuisinier"],
     },
   },
