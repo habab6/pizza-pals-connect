@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
@@ -276,35 +277,35 @@ const CaissierDashboard = () => {
         <div className="flex flex-wrap gap-2">
           <HistoriqueCommandes />
           
-          <Dialog open={showGestionArticles} onOpenChange={setShowGestionArticles}>
-            <DialogTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center space-x-2">
                 <Settings className="h-4 w-4" />
-                <span className="hidden md:inline">Gérer articles</span>
+                <span>Réglages</span>
               </Button>
-            </DialogTrigger>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowGestionArticles(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Gestion des articles
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={viderCommandes} className="text-red-600">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Vider commandes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={viderClients} className="text-red-600">
+                <Database className="h-4 w-4 mr-2" />
+                Vider clients
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Dialog open={showGestionArticles} onOpenChange={setShowGestionArticles}>
             <DialogContent className="max-w-[95vw] md:max-w-4xl h-[90vh] max-h-[95vh] overflow-hidden flex flex-col">
               <GestionArticles onClose={() => setShowGestionArticles(false)} />
             </DialogContent>
           </Dialog>
-
-          <Button 
-            onClick={viderCommandes}
-            variant="outline" 
-            className="flex items-center space-x-2 border-red-200 text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="hidden md:inline">Vider commandes</span>
-          </Button>
-
-          <Button 
-            onClick={viderClients}
-            variant="outline" 
-            className="flex items-center space-x-2 border-red-200 text-red-700 hover:bg-red-50"
-          >
-            <Database className="h-4 w-4" />
-            <span className="hidden md:inline">Vider clients</span>
-          </Button>
 
           <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
             setShowNouvelleCommande(open);
