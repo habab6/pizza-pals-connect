@@ -125,12 +125,43 @@ const CaissierDashboard = () => {
     }
 
     try {
+      // D'abord récupérer les articles de la commande pour déterminer quels commerces mettre à jour
+      const { data: items, error: itemsError } = await supabase
+        .from('commande_items')
+        .select(`
+          *,
+          produits (
+            categorie
+          )
+        `)
+        .eq('commande_id', commandeToServe);
+
+      if (itemsError) throw itemsError;
+
+      // Déterminer quels commerces sont impliqués
+      const hasDolce = items?.some(item => 
+        ['pizzas', 'pates', 'desserts'].includes(item.produits?.categorie || '')
+      ) || false;
+      
+      const hasLSF = items?.some(item => 
+        ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits?.categorie || '')
+      ) || false;
+
+      // Préparer les mises à jour de statut
+      const updates: any = {
+        mode_paiement: selectedPaymentMethod as any
+      };
+
+      if (hasDolce) {
+        updates.statut_dolce_italia = 'termine';
+      }
+      if (hasLSF) {
+        updates.statut_961_lsf = 'termine';
+      }
+
       const { error } = await supabase
         .from('commandes')
-        .update({ 
-          statut: 'termine',
-          mode_paiement: selectedPaymentMethod as any
-        })
+        .update(updates)
         .eq('id', commandeToServe);
 
       if (error) throw error;
