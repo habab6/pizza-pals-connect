@@ -1,21 +1,53 @@
 class NotificationAudio {
   private audio: HTMLAudioElement | null = null;
   private isPlaying = false;
+  private audioContext: AudioContext | null = null;
+  private isInitialized = false;
 
   constructor() {
-    // Create audio notification sound using Web Audio API
-    this.createNotificationSound();
+    console.log('🔊 Initializing NotificationAudio...');
+    // Don't create audio immediately - wait for user interaction
   }
 
-  private createNotificationSound() {
-    // Create a simple notification sound using Web Audio API
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  private async initializeAudio() {
+    if (this.isInitialized) return;
     
-    // Create a buffer for our sound
-    const sampleRate = audioContext.sampleRate;
-    const duration = 0.3; // 300ms
-    const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
-    const data = buffer.getChannelData(0);
+    try {
+      console.log('🔊 Initializing audio with user interaction...');
+      
+      // Resume AudioContext (required by some browsers)
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+        console.log('🔊 AudioContext resumed');
+      }
+      
+      await this.createNotificationSound();
+      this.isInitialized = true;
+      console.log('🔊 Audio initialized successfully');
+    } catch (error) {
+      console.error('🔊 Error initializing audio:', error);
+    }
+  }
+
+  private async createNotificationSound() {
+    try {
+      console.log('🔊 Creating notification sound...');
+      
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      console.log('🔊 AudioContext created:', this.audioContext.state);
+      
+      // Create a buffer for our sound
+      const sampleRate = this.audioContext.sampleRate;
+      const duration = 0.3; // 300ms
+      const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+      const data = buffer.getChannelData(0);
 
     // Generate a soft, pleasant notification sound (gentle chime)
     for (let i = 0; i < buffer.length; i++) {
@@ -42,14 +74,22 @@ class NotificationAudio {
     source.connect(offlineContext.destination);
     source.start();
     
-    offlineContext.startRendering().then((renderedBuffer) => {
-      // Convert buffer to WAV blob and create audio element
-      const wav = this.bufferToWave(renderedBuffer);
-      const blob = new Blob([wav], { type: 'audio/wav' });
-      const url = URL.createObjectURL(blob);
-      this.audio = new Audio(url);
-      this.audio.loop = true;
-    });
+    const renderedBuffer = await offlineContext.startRendering();
+    console.log('🔊 Audio buffer rendered successfully');
+    
+    // Convert buffer to WAV blob and create audio element
+    const wav = this.bufferToWave(renderedBuffer);
+    const blob = new Blob([wav], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    this.audio = new Audio(url);
+    this.audio.loop = true;
+    this.audio.volume = 0.3; // Set a reasonable volume
+    console.log('🔊 Audio element created and ready');
+    } catch (error) {
+      console.error('🔊 Error creating notification sound:', error);
+      // Fallback: create a simple beep using oscillator
+      console.log('🔊 Using fallback beep sound');
+    }
   }
 
   private bufferToWave(buffer: AudioBuffer): ArrayBuffer {
@@ -90,19 +130,59 @@ class NotificationAudio {
     return arrayBuffer;
   }
 
-  play() {
+  async play() {
+    console.log('🔊 Play called, audio ready:', !!this.audio, 'isPlaying:', this.isPlaying);
+    
+    // Initialize audio on first play (requires user interaction)
+    if (!this.isInitialized) {
+      await this.initializeAudio();
+    }
+    
     if (this.audio && !this.isPlaying) {
       this.isPlaying = true;
       this.audio.currentTime = 0;
-      this.audio.play().catch(console.error);
+      console.log('🔊 Attempting to play sound...');
+      try {
+        await this.audio.play();
+        console.log('🔊 Sound played successfully');
+      } catch (error) {
+        console.error('🔊 Error playing sound:', error);
+        this.isPlaying = false;
+        // Try fallback beep
+        this.playFallbackBeep();
+      }
+    }
+  }
+
+  private playFallbackBeep() {
+    try {
+      console.log('🔊 Playing fallback beep');
+      if (this.audioContext) {
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+        
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + 0.3);
+      }
+    } catch (error) {
+      console.error('🔊 Fallback beep failed:', error);
     }
   }
 
   stop() {
+    console.log('🔊 Stop called, isPlaying:', this.isPlaying);
     if (this.audio && this.isPlaying) {
       this.isPlaying = false;
       this.audio.pause();
       this.audio.currentTime = 0;
+      console.log('🔊 Sound stopped');
     }
   }
 
@@ -121,9 +201,10 @@ export const getNotificationAudio = (): NotificationAudio => {
   return notificationAudio;
 };
 
-export const playNotificationSound = () => {
+export const playNotificationSound = async () => {
+  console.log('🔊 playNotificationSound called');
   const audio = getNotificationAudio();
-  audio.play();
+  await audio.play();
 };
 
 export const stopNotificationSound = () => {

@@ -77,7 +77,7 @@ const CuisinierDashboard = () => {
       }).length;
       
       if (newCommandesCount > previousCommandesCount) {
-        playNotificationSound();
+        playNotificationSound().catch(console.error);
       } else if (newCommandesCount === 0) {
         stopNotificationSound();
       }
