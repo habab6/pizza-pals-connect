@@ -40,6 +40,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategorie, setFilterCategorie] = useState<string>('all');
+  const [filterCommerce, setFilterCommerce] = useState<string>('all');
   const [filterDisponible, setFilterDisponible] = useState<string>('all');
 
   const { toast } = useToast();
@@ -243,11 +244,12 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const filteredProducts = produits.filter(product => {
     const matchesSearch = product.nom.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategorie === 'all' || product.categorie === filterCategorie;
+    const matchesCommerce = filterCommerce === 'all' || product.commerce === filterCommerce;
     const matchesDisponible = filterDisponible === 'all' || 
       (filterDisponible === 'available' && product.disponible) ||
       (filterDisponible === 'unavailable' && !product.disponible);
     
-    return matchesSearch && matchesCategory && matchesDisponible;
+    return matchesSearch && matchesCategory && matchesCommerce && matchesDisponible;
   });
 
   // Grouper les produits par commerce
@@ -301,6 +303,17 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1"
             />
+            
+            <Select value={filterCommerce} onValueChange={setFilterCommerce}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Commerce" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les commerces</SelectItem>
+                <SelectItem value="dolce_italia">Dolce Italia</SelectItem>
+                <SelectItem value="961_lsf">961 LSF</SelectItem>
+              </SelectContent>
+            </Select>
             
             <Select value={filterCategorie} onValueChange={setFilterCategorie}>
               <SelectTrigger className="w-40">
