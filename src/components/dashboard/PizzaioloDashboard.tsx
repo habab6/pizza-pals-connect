@@ -17,6 +17,7 @@ interface Commande {
   total: number;
   notes?: string;
   created_at: string;
+  commerce_principal?: 'dolce_italia' | '961_lsf';
   clients?: {
     nom: string;
   };
@@ -25,6 +26,7 @@ interface Commande {
     produits: {
       nom: string;
       categorie: string;
+      commerce?: 'dolce_italia' | '961_lsf';
     };
   }>;
 }
@@ -45,7 +47,7 @@ const PizzaioloDashboard = () => {
           clients (nom),
           commande_items (
             quantite,
-            produits (nom, categorie)
+            produits (nom, categorie, commerce)
           )
         `)
         .in('statut', ['nouveau', 'en_preparation', 'pret'])
@@ -157,6 +159,24 @@ const PizzaioloDashboard = () => {
     return types[type as keyof typeof types] || type;
   };
 
+  // Vérifier si une commande est mixte (contient des articles des deux commerces)
+  const isCommandeMixte = (commande: Commande) => {
+    const hasLSF = commande.commande_items.some(item => 
+      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+    );
+    const hasDolce = commande.commande_items.some(item => 
+      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+    );
+    return hasLSF && hasDolce;
+  };
+
+  // Filtrer les articles Dolce Italia de la commande
+  const getItemsDolce = (commande: Commande) => {
+    return commande.commande_items.filter(item => 
+      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -225,37 +245,46 @@ const PizzaioloDashboard = () => {
             <p className="text-gray-500 text-lg">Aucune commande en attente</p>
           </div>
         ) : (
-          commandes.map((commande) => (
-            <Card key={commande.id} className="border-l-4 border-l-red-500">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {getTypeCommande(commande.type_commande)}
-                      {commande.clients && ` • ${commande.clients.nom}`}
-                    </p>
+          commandes.map((commande) => {
+            const itemsDolce = getItemsDolce(commande);
+            const isMixte = isCommandeMixte(commande);
+            
+            return (
+              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-red-500'}`}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {getTypeCommande(commande.type_commande)}
+                        {commande.clients && ` • ${commande.clients.nom}`}
+                      </p>
+                      {isMixte && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          🍕🥪 Commande mixte
+                        </Badge>
+                      )}
+                    </div>
+                    {getStatusBadge(commande.statut)}
                   </div>
-                  {getStatusBadge(commande.statut)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Items de la commande */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Articles:</h4>
-                  <div className="space-y-1">
-                     {commande.commande_items.map((item, index) => (
-                       <div key={index} className="flex justify-between items-center text-sm">
-                         <div className="flex-1">
-                           <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Items Dolce Italia */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Articles Dolce Italia:</h4>
+                    <div className="space-y-1">
+                       {itemsDolce.map((item, index) => (
+                         <div key={index} className="flex justify-between items-center text-sm">
+                           <div className="flex-1">
+                             <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                           </div>
+                           <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
+                             {item.produits.categorie}
+                           </Badge>
                          </div>
-                         <Badge variant="outline" className="text-xs">
-                           {item.produits.categorie}
-                         </Badge>
-                       </div>
-                     ))}
+                       ))}
+                    </div>
                   </div>
-                </div>
 
                 {/* Notes */}
                 {commande.notes && (
@@ -301,9 +330,10 @@ const PizzaioloDashboard = () => {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
