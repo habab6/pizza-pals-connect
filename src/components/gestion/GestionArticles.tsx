@@ -35,6 +35,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [formData, setFormData] = useState({
     nom: '',
     categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches',
+    commerce: 'dolce_italia' as 'dolce_italia' | '961_lsf',
     prix: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +82,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     setFormData({
       nom: '',
       categorie: 'pizzas',
+      commerce: 'dolce_italia',
       prix: ''
     });
     setEditingProduct(null);
@@ -117,6 +119,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .update({
             nom: formData.nom.trim(),
             categorie: formData.categorie as any,
+            commerce: formData.commerce as any,
             prix: prix
           })
           .eq('id', editingProduct.id);
@@ -134,6 +137,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .insert({
             nom: formData.nom.trim(),
             categorie: formData.categorie as any,
+            commerce: formData.commerce as any,
             prix: prix,
             disponible: true
           });
@@ -162,6 +166,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     setFormData({
       nom: product.nom,
       categorie: product.categorie,
+      commerce: product.commerce,
       prix: product.prix.toString()
     });
     setShowAddForm(true);
@@ -245,6 +250,24 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     return matchesSearch && matchesCategory && matchesDisponible;
   });
 
+  // Grouper les produits par commerce
+  const groupedProducts = filteredProducts.reduce((groups, product) => {
+    const commerce = product.commerce;
+    if (!groups[commerce]) {
+      groups[commerce] = [];
+    }
+    groups[commerce].push(product);
+    return groups;
+  }, {} as Record<string, Produit[]>);
+
+  const getCommerceLabel = (commerce: string) => {
+    return commerce === 'dolce_italia' ? 'Dolce Italia' : '961 LSF';
+  };
+
+  const getCategoriesForCommerce = (commerce: string) => {
+    return categories.filter(cat => cat.commerce === commerce || cat.commerce === 'both');
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -307,81 +330,87 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
         </div>
       </div>
 
-      {/* Liste des produits */}
+      {/* Liste des produits groupés par commerce */}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
-          <div className="p-4 space-y-3">
-            {filteredProducts.length === 0 ? (
+          <div className="p-4 space-y-6">
+            {Object.keys(groupedProducts).length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>Aucun article trouvé</p>
               </div>
             ) : (
-              filteredProducts.map((product) => {
-                const categoryInfo = getCategoryInfo(product.categorie);
-                
-                return (
-                  <Card key={product.id} className="transition-all hover:shadow-md">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="font-medium truncate">{product.nom}</h3>
-                            <Badge variant="outline" className="text-xs flex-shrink-0">
-                              {categoryInfo.label}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs flex-shrink-0 bg-blue-50 text-blue-700">
-                              {product.commerce === 'dolce_italia' ? 'Dolce Italia' : '961 LSF'}
-                            </Badge>
-                            <Badge 
-                              variant={product.disponible ? "success" : "secondary"}
-                              className="text-xs flex-shrink-0"
-                            >
-                              {product.disponible ? "Disponible" : "Indisponible"}
-                            </Badge>
-                          </div>
-                            <p className="text-lg font-bold text-primary">{product.prix.toFixed(2)}€</p>
-                          </div>
-                        </div>
+              Object.entries(groupedProducts).map(([commerce, products]) => (
+                <div key={commerce} className="space-y-3">
+                  <div className="flex items-center space-x-2 pb-2 border-b">
+                    <h3 className="text-lg font-semibold text-primary">
+                      {getCommerceLabel(commerce)}
+                    </h3>
+                    <Badge variant="outline" className="text-xs">
+                      {products.length} article{products.length > 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  
+                  {products.map((product) => {
+                    const categoryInfo = getCategoryInfo(product.categorie);
+                    
+                    return (
+                      <Card key={product.id} className="transition-all hover:shadow-md">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <h4 className="font-medium truncate">{product.nom}</h4>
+                                  <Badge variant="outline" className="text-xs flex-shrink-0">
+                                    {categoryInfo.label}
+                                  </Badge>
+                                  <Badge 
+                                    variant={product.disponible ? "success" : "secondary"}
+                                    className="text-xs flex-shrink-0"
+                                  >
+                                    {product.disponible ? "Disponible" : "Indisponible"}
+                                  </Badge>
+                                </div>
+                                <p className="text-lg font-bold text-primary">{product.prix.toFixed(2)}€</p>
+                              </div>
+                            </div>
 
-                        <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleDisponibilite(product)}
-                            className="flex items-center space-x-1"
-                          >
-                            {product.disponible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            <span className="hidden sm:inline">
-                              {product.disponible ? 'Désactiver' : 'Activer'}
-                            </span>
-                          </Button>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(product)}
-                            className="flex items-center space-x-1"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                            <span className="hidden sm:inline">Modifier</span>
-                          </Button>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDeletingProduct(product)}
-                            className="flex items-center space-x-1 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            <span className="hidden sm:inline">Supprimer</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
+                            <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleDisponibilite(product)}
+                                title={product.disponible ? 'Désactiver' : 'Activer'}
+                              >
+                                {product.disponible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(product)}
+                                title="Modifier"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDeletingProduct(product)}
+                                className="text-destructive hover:text-destructive"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ))
             )}
           </div>
         </ScrollArea>
@@ -412,13 +441,26 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             </div>
 
             <div>
+              <Label htmlFor="commerce">Commerce *</Label>
+              <Select value={formData.commerce} onValueChange={(value: any) => setFormData({...formData, commerce: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dolce_italia">Dolce Italia</SelectItem>
+                  <SelectItem value="961_lsf">961 LSF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="categorie">Catégorie *</Label>
               <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value})}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(cat => (
+                  {getCategoriesForCommerce(formData.commerce).map(cat => (
                     <SelectItem key={cat.key} value={cat.key}>
                       {cat.label}
                     </SelectItem>
