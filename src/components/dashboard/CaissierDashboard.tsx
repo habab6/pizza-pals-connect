@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database } from "lucide-react";
+import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database, Calculator } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -273,7 +273,10 @@ const CaissierDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center space-x-2">
+          <Calculator className="h-6 w-6 text-red-600" />
+          <span>Tableau de bord - Caissier</span>
+        </h2>
         <div className="flex flex-wrap gap-2">
           <HistoriqueCommandes />
           
