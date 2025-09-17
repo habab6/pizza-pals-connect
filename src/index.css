@@ -200,3 +200,30 @@ All colors MUST be HSL.
     page-break-inside: avoid !important;
   }
 }
+
+/* Notification animations */
+@keyframes pulse-alert {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes blink-attention {
+  0%, 50% {
+    background-color: hsl(var(--background));
+    border-color: hsl(var(--border));
+  }
+  51%, 100% {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgb(239, 68, 68);
+  }
+}
+
+.notification-alert {
+  animation: pulse-alert 2s infinite, blink-attention 1s infinite;
+}

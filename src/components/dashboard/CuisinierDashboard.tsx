@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { formatProduitNom } from "@/utils/formatters";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
+import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
 
 interface Commande {
   id: string;
@@ -36,6 +37,7 @@ const CuisinierDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
 
   const fetchCommandes = async () => {
@@ -64,6 +66,23 @@ const CuisinierDashboard = () => {
       );
 
       setCommandes(commandesLSF as any);
+      
+      // Détecter les nouvelles commandes et jouer le son
+      const newCommandesCount = commandesLSF.filter((commande: any) => {
+        const itemsLSF = commande.commande_items?.filter((item: any) => 
+          ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+        );
+        const statutLSF = commande.statut_961_lsf || 'nouveau';
+        return itemsLSF.length > 0 && statutLSF === 'nouveau';
+      }).length;
+      
+      if (newCommandesCount > previousCommandesCount) {
+        playNotificationSound();
+      } else if (newCommandesCount === 0) {
+        stopNotificationSound();
+      }
+      
+      setPreviousCommandesCount(newCommandesCount);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -120,6 +139,11 @@ const CuisinierDashboard = () => {
 
       if (error) throw error;
 
+      // Arrêter le son si c'est une commande qui était "nouveau"
+      if (nouveauStatut !== 'nouveau') {
+        stopNotificationSound();
+      }
+      
       toast({
         title: "Statut mis à jour",
         description: `Commande 961 LSF marquée comme ${nouveauStatut.replace('_', ' ')}`
@@ -260,9 +284,11 @@ const CuisinierDashboard = () => {
           commandes.map((commande) => {
             const itemsLSF = getItemsLSF(commande);
             const isMixte = isCommandeMixte(commande);
+            const statutLSF = (commande as any).statut_961_lsf || 'nouveau';
+            const isNouveau = statutLSF === 'nouveau';
             
             return (
-              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-orange-500'}`}>
+              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-orange-500'} ${isNouveau ? 'notification-alert' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>

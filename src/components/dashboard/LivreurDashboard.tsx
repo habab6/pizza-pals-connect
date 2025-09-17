@@ -7,6 +7,7 @@ import { Truck, Phone, MapPin, Clock, CheckCircle, CreditCard } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
+import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -42,6 +43,7 @@ const LivreurDashboard = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [commandeToDeliver, setCommandeToDeliver] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
+  const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
   
   // Pas besoin de profil livreur - une seule personne par rôle
@@ -84,6 +86,17 @@ const LivreurDashboard = () => {
 
       setCommandes(commandesDisponibles || []);
       setMesLivraisons(mesLivraisonsData || []);
+      
+      // Détecter les nouvelles livraisons disponibles et jouer le son
+      const newCommandesCount = (commandesDisponibles || []).length;
+      
+      if (newCommandesCount > previousCommandesCount) {
+        playNotificationSound();
+      } else if (newCommandesCount === 0) {
+        stopNotificationSound();
+      }
+      
+      setPreviousCommandesCount(newCommandesCount);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -128,6 +141,9 @@ const LivreurDashboard = () => {
         throw error;
       }
 
+      // Arrêter le son quand une livraison est acceptée
+      stopNotificationSound();
+      
       toast({
         title: "Livraison acceptée",
         description: "La commande est maintenant en cours de livraison"
@@ -376,7 +392,7 @@ const LivreurDashboard = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {commandes.map((commande) => (
-              <Card key={commande.id} className="border-l-4 border-l-red-500">
+              <Card key={commande.id} className="border-l-4 border-l-red-500 notification-alert">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>

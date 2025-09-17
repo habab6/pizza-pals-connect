@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { formatProduitNom } from "@/utils/formatters";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
+import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
 
 interface Commande {
   id: string;
@@ -36,6 +37,7 @@ const PizzaioloDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
 
   const fetchCommandes = async () => {
@@ -64,6 +66,24 @@ const PizzaioloDashboard = () => {
       );
       
       setCommandes(commandesDolce as any);
+      
+      // Détecter les nouvelles commandes et jouer le son
+      const newCommandesCount = commandesDolce.filter((commande: any) => {
+        const itemsDolce = commande.commande_items?.filter((item: any) => 
+          ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+        );
+        const statutDolce = commande.statut_dolce_italia || 'nouveau';
+        return itemsDolce.length > 0 && statutDolce === 'nouveau';
+      }).length;
+      
+      if (newCommandesCount > previousCommandesCount) {
+        playNotificationSound();
+      } else if (newCommandesCount === 0) {
+        stopNotificationSound();
+      }
+      
+      setPreviousCommandesCount(newCommandesCount);
+      
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -120,6 +140,11 @@ const PizzaioloDashboard = () => {
 
       if (error) throw error;
 
+      // Arrêter le son si c'est une commande qui était "nouveau"
+      if (nouveauStatut !== 'nouveau') {
+        stopNotificationSound();
+      }
+      
       toast({
         title: "Statut mis à jour",
         description: `Commande Dolce Italia marquée comme ${nouveauStatut.replace('_', ' ')}`
@@ -260,9 +285,11 @@ const PizzaioloDashboard = () => {
           commandes.map((commande) => {
             const itemsDolce = getItemsDolce(commande);
             const isMixte = isCommandeMixte(commande);
+            const statutDolce = (commande as any).statut_dolce_italia || 'nouveau';
+            const isNouveau = statutDolce === 'nouveau';
             
             return (
-              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-red-500'}`}>
+              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-red-500'} ${isNouveau ? 'notification-alert' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
