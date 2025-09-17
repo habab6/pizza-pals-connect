@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
-import { Plus, Minus, Search, Phone, MapPin } from "lucide-react";
+import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 interface Produit {
   id: string;
@@ -47,7 +49,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [categorieActive, setCategorieActive] = useState<string>('pizzas');
+  const [currentStep, setCurrentStep] = useState<'commande' | 'client' | 'validation'>('commande');
   
   const { toast } = useToast();
 
@@ -85,7 +87,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         .from('clients')
         .select('*')
         .eq('telephone', telephone)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       
@@ -151,7 +153,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       return;
     }
 
-    // Vérifier les infos client
     if (!clientInfo.nom.trim()) {
       toast({
         variant: "destructive",
@@ -177,11 +178,9 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     try {
       let clientId = null;
 
-      // Créer ou récupérer le client
       if (typeCommande === 'livraison' && clientInfo.nom.trim()) {
         if (clientExistant) {
           clientId = clientExistant.id;
-          // Mettre à jour les infos si nécessaire
           if (typeCommande === 'livraison' && clientInfo.adresse !== clientExistant.adresse) {
             await supabase
               .from('clients')
@@ -189,7 +188,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
               .eq('id', clientExistant.id);
           }
         } else {
-          // Créer un nouveau client seulement pour les livraisons
           const { data: nouveauClient, error: clientError } = await supabase
             .from('clients')
             .insert({
@@ -204,12 +202,11 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           clientId = nouveauClient.id;
         }
       } else if (typeCommande !== 'livraison' && clientInfo.nom.trim()) {
-        // Pour sur place et à emporter, créer un client sans téléphone ni adresse
         const { data: nouveauClient, error: clientError } = await supabase
           .from('clients')
           .insert({
             nom: clientInfo.nom.trim(),
-            telephone: `client_${Date.now()}`, // Téléphone unique fictif
+            telephone: `client_${Date.now()}`,
             adresse: null
           })
           .select()
@@ -219,23 +216,21 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         clientId = nouveauClient.id;
       }
 
-      // Créer la commande
       const { data: commande, error: commandeError } = await supabase
         .from('commandes')
         .insert({
           type_commande: typeCommande,
           client_id: clientId,
-          caissier_id: null, // Pas d'authentification
+          caissier_id: null,
           total: calculerTotal(),
           notes: notes.trim() || null,
-          numero_commande: Date.now().toString()
+          numero_commande: `CMD${Date.now()}`
         })
         .select()
         .single();
 
       if (commandeError) throw commandeError;
 
-      // Ajouter les items de la commande
       const items = panier.map(item => ({
         commande_id: commande.id,
         produit_id: item.produit.id,
@@ -249,8 +244,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         .insert(items);
 
       if (itemsError) throw itemsError;
-
-      // Les pizzaiolos verront automatiquement la nouvelle commande via le rafraîchissement automatique
 
       toast({
         title: "Commande créée !",
@@ -269,317 +262,433 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
-  const produitsFiltrés = produits
-    .filter(p => p.categorie === categorieActive)
-    .filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
-
   const categories = [
-    { key: 'pizzas', label: 'Pizzas' },
-    { key: 'pates', label: 'Pâtes' },
-    { key: 'desserts', label: 'Desserts' },
-    { key: 'boissons', label: 'Boissons' }
+    { key: 'pizzas', label: 'Pizzas', icon: '🍕' },
+    { key: 'pates', label: 'Pâtes', icon: '🍝' },
+    { key: 'desserts', label: 'Desserts', icon: '🍰' },
+    { key: 'boissons', label: 'Boissons', icon: '🥤' }
   ];
 
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 'commande': return 'Choisir les produits';
+      case 'client': return 'Informations client';
+      case 'validation': return 'Validation de la commande';
+      default: return 'Nouvelle commande';
+    }
+  };
+
   return (
-    <div className="p-3 md:p-6 max-w-6xl mx-auto">
-      <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Nouvelle commande</h2>
-      
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
-        {/* Menu des produits */}
-        <div className="xl:col-span-2 space-y-4">
-          {/* Type de commande */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base md:text-lg">Type de commande</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={typeCommande} onValueChange={(value: any) => setTypeCommande(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sur_place">Sur place</SelectItem>
-                  <SelectItem value="a_emporter">À emporter</SelectItem>
-                  <SelectItem value="livraison">Livraison</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+    <div className="h-full flex flex-col">
+      {/* Header avec progression */}
+      <div className="flex-shrink-0 border-b bg-background px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">{getStepTitle()}</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* Progress steps */}
+        <div className="flex items-center space-x-2 text-sm">
+          <div className={`flex items-center space-x-1 ${currentStep === 'commande' ? 'text-primary' : panier.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${currentStep === 'commande' ? 'bg-primary text-primary-foreground' : panier.length > 0 ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+              {panier.length > 0 && currentStep !== 'commande' ? <Check className="h-3 w-3" /> : '1'}
+            </div>
+            <span>Produits</span>
+          </div>
+          
+          <div className="h-px bg-border flex-1" />
+          
+          <div className={`flex items-center space-x-1 ${currentStep === 'client' ? 'text-primary' : currentStep === 'validation' ? 'text-green-600' : 'text-muted-foreground'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${currentStep === 'client' ? 'bg-primary text-primary-foreground' : currentStep === 'validation' ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+              {currentStep === 'validation' ? <Check className="h-3 w-3" /> : '2'}
+            </div>
+            <span>Client</span>
+          </div>
+          
+          <div className="h-px bg-border flex-1" />
+          
+          <div className={`flex items-center space-x-1 ${currentStep === 'validation' ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${currentStep === 'validation' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              3
+            </div>
+            <span>Validation</span>
+          </div>
+        </div>
+      </div>
 
-          {/* Infos client */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base md:text-lg">Informations client</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="nom">Nom du client *</Label>
-                <Input
-                  id="nom"
-                  placeholder="Nom du client"
-                  value={clientInfo.nom}
-                  onChange={(e) => setClientInfo({...clientInfo, nom: e.target.value})}
-                  required
-                />
-              </div>
-
-              {typeCommande === 'livraison' && (
-                <>
-                  <div>
-                    <Label htmlFor="telephone">Téléphone *</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="telephone"
-                        placeholder="Ex: 0123456789"
-                        value={clientInfo.telephone}
-                        onChange={(e) => {
-                          setClientInfo({...clientInfo, telephone: e.target.value});
-                          searchClient(e.target.value);
-                        }}
-                        className="flex-1"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => searchClient(clientInfo.telephone)}
-                      >
-                        <Search className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {clientExistant && (
-                      <p className="text-sm text-green-600 mt-1">Client trouvé: {clientExistant.nom}</p>
-                    )}
-                  </div>
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {currentStep === 'commande' && (
+          <div className="h-full flex flex-col lg:flex-row">
+            {/* Menu des produits */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-shrink-0 p-4 border-b">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select value={typeCommande} onValueChange={(value: any) => setTypeCommande(value)}>
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sur_place">Sur place</SelectItem>
+                      <SelectItem value="a_emporter">À emporter</SelectItem>
+                      <SelectItem value="livraison">Livraison</SelectItem>
+                    </SelectContent>
+                  </Select>
                   
-                  <div>
-                    <Label htmlFor="adresse">Adresse de livraison *</Label>
-                    <Textarea
-                      id="adresse"
-                      placeholder="Adresse complète"
-                      value={clientInfo.adresse}
-                      onChange={(e) => setClientInfo({...clientInfo, adresse: e.target.value})}
-                      rows={2}
-                      required
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher un produit..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
                     />
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </div>
+              </div>
 
-          {/* Infos client livraison supplémentaires */}
-          {false && (
+              <Tabs defaultValue={categories[0].key} className="flex-1 flex flex-col min-h-0">
+                <div className="flex-shrink-0 px-4 pt-3">
+                  <TabsList className="grid w-full grid-cols-4">
+                    {categories.map(cat => (
+                      <TabsTrigger key={cat.key} value={cat.key} className="text-xs">
+                        <span className="mr-1">{cat.icon}</span>
+                        <span className="hidden sm:inline">{cat.label}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+
+                {categories.map(cat => (
+                  <TabsContent key={cat.key} value={cat.key} className="flex-1 overflow-hidden m-0">
+                    <div className="h-full overflow-y-auto p-4 space-y-2">
+                      {produits
+                        .filter(p => p.categorie === cat.key)
+                        .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map(produit => {
+                          const quantiteInPanier = getQuantiteInPanier(produit.id);
+                          const isSelected = quantiteInPanier > 0;
+                          
+                          return (
+                            <div 
+                              key={produit.id} 
+                              className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                                isSelected 
+                                  ? 'bg-primary/5 border-primary/20 shadow-sm' 
+                                  : 'bg-card border-border hover:bg-muted/50'
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm truncate">{formatProduitNom(produit.nom, produit.categorie)}</h4>
+                                <p className="text-primary font-semibold text-sm">{produit.prix.toFixed(2)}€</p>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2 ml-3">
+                                {isSelected && (
+                                  <div className="flex items-center space-x-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => modifierQuantite(produit.id, -1)}
+                                      className="h-7 w-7 p-0"
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <Badge variant="secondary" className="min-w-[2rem] justify-center">
+                                      {quantiteInPanier}
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => modifierQuantite(produit.id, 1)}
+                                      className="h-7 w-7 p-0"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                                {!isSelected && (
+                                  <Button
+                                    onClick={() => ajouterAuPanier(produit)}
+                                    size="sm"
+                                    className="h-7 px-3"
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    <span className="hidden sm:inline">Ajouter</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+
+            {/* Panier sidebar */}
+            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-muted/30 flex flex-col">
+              <div className="flex-shrink-0 p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold flex items-center">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Panier ({panier.length})
+                  </h3>
+                  {panier.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanier([])}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      Vider
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {panier.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                    <ShoppingCart className="h-8 w-8 mb-2" />
+                    <p className="text-sm">Panier vide</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {panier.map((item) => (
+                      <div key={item.produit.id} className="p-3 bg-background rounded-lg border">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-sm font-medium truncate">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
+                            <p className="text-xs text-muted-foreground">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
+                          </div>
+                          <div className="flex items-center space-x-1 ml-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => modifierQuantite(item.produit.id, -1)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm w-6 text-center">{item.quantite}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => modifierQuantite(item.produit.id, 1)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex justify-end mt-2">
+                          <p className="text-sm font-semibold text-primary">
+                            {(item.produit.prix * item.quantite).toFixed(2)}€
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {panier.length > 0 && (
+                <div className="flex-shrink-0 p-4 border-t bg-background">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-semibold">Total:</span>
+                    <span className="text-lg font-bold text-primary">{calculerTotal().toFixed(2)}€</span>
+                  </div>
+                  <Button
+                    onClick={() => setCurrentStep('client')}
+                    disabled={panier.length === 0}
+                    className="w-full"
+                  >
+                    Continuer
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'client' && (
+          <div className="p-6 max-w-md mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle>Informations client</CardTitle>
+                <CardTitle className="text-lg">Informations client</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="telephone">Téléphone</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id="telephone"
-                      placeholder="Ex: 0123456789"
-                      value={clientInfo.telephone}
-                      onChange={(e) => {
-                        setClientInfo({...clientInfo, telephone: e.target.value});
-                        searchClient(e.target.value);
-                      }}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => searchClient(clientInfo.telephone)}
-                    >
-                      <Search className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {clientExistant && (
-                    <p className="text-sm text-green-600 mt-1">Client trouvé: {clientExistant.nom}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <Label htmlFor="nom">Nom</Label>
+                  <Label htmlFor="nom">Nom du client *</Label>
                   <Input
                     id="nom"
                     placeholder="Nom du client"
                     value={clientInfo.nom}
                     onChange={(e) => setClientInfo({...clientInfo, nom: e.target.value})}
+                    required
                   />
                 </div>
 
                 {typeCommande === 'livraison' && (
-                  <div>
-                    <Label htmlFor="adresse">Adresse de livraison</Label>
-                    <Textarea
-                      id="adresse"
-                      placeholder="Adresse complète"
-                      value={clientInfo.adresse}
-                      onChange={(e) => setClientInfo({...clientInfo, adresse: e.target.value})}
-                      rows={2}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Menu */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base md:text-lg">Menu</CardTitle>
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                <Input
-                  placeholder="Rechercher un produit..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:max-w-sm"
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Catégories */}
-              <div className="grid grid-cols-2 sm:flex sm:space-x-2 gap-2 sm:gap-0 mb-4 overflow-x-auto">
-                {categories.map(cat => (
-                  <Button
-                    key={cat.key}
-                    variant={categorieActive === cat.key ? "default" : "outline"}
-                    onClick={() => setCategorieActive(cat.key)}
-                    className="whitespace-nowrap text-sm"
-                  >
-                    {cat.label}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Produits */}
-              <div className="grid grid-cols-1 gap-3 max-h-80 md:max-h-96 overflow-y-auto">
-                {produitsFiltrés.map(produit => {
-                  const quantiteInPanier = getQuantiteInPanier(produit.id);
-                  const isSelected = quantiteInPanier > 0;
-                  
-                  return (
-                    <div 
-                      key={produit.id} 
-                      className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                        isSelected ? 'bg-red-50 border-2 border-red-200' : 'bg-gray-50 border-2 border-transparent'
-                      }`}
-                    >
-                      <div className="flex-1">
-                        <h4 className="font-medium">{formatProduitNom(produit.nom, produit.categorie)}</h4>
-                        <p className="text-red-600 font-semibold">{produit.prix.toFixed(2)}€</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {isSelected && (
-                          <Badge variant="secondary" className="bg-red-100 text-red-700">
-                            {quantiteInPanier}
-                          </Badge>
-                        )}
+                  <>
+                    <div>
+                      <Label htmlFor="telephone">Téléphone *</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          id="telephone"
+                          placeholder="Ex: 0123456789"
+                          value={clientInfo.telephone}
+                          onChange={(e) => {
+                            setClientInfo({...clientInfo, telephone: e.target.value});
+                            searchClient(e.target.value);
+                          }}
+                          className="flex-1"
+                          required
+                        />
                         <Button
-                          onClick={() => ajouterAuPanier(produit)}
-                          size="sm"
-                          className={isSelected ? "bg-red-700 hover:bg-red-800" : "bg-red-600 hover:bg-red-700"}
+                          type="button"
+                          variant="outline"
+                          onClick={() => searchClient(clientInfo.telephone)}
                         >
-                          <Plus className="h-4 w-4" />
+                          <Search className="h-4 w-4" />
                         </Button>
                       </div>
+                      {clientExistant && (
+                        <p className="text-sm text-green-600 mt-1 flex items-center">
+                          <Check className="h-3 w-3 mr-1" />
+                          Client trouvé: {clientExistant.nom}
+                        </p>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Panier */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base md:text-lg">Panier ({panier.length} articles)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-48 md:max-h-64 overflow-y-auto">
-                {panier.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Panier vide</p>
-                ) : (
-                  panier.map((item) => (
-                    <div key={item.produit.id} className="p-2 bg-gray-50 rounded">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h5 className="text-sm font-medium">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
-                          <p className="text-xs text-gray-600">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => modifierQuantite(item.produit.id, -1)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="text-sm w-8 text-center">{item.quantite}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => modifierQuantite(item.produit.id, 1)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
+                    
+                    <div>
+                      <Label htmlFor="adresse">Adresse de livraison *</Label>
+                      <Textarea
+                        id="adresse"
+                        placeholder="Adresse complète"
+                        value={clientInfo.adresse}
+                        onChange={(e) => setClientInfo({...clientInfo, adresse: e.target.value})}
+                        rows={3}
+                        required
+                      />
                     </div>
-                  ))
+                  </>
                 )}
-              </div>
-              
-              <div className="border-t pt-3 mt-3">
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total:</span>
-                  <span className="text-red-600">{calculerTotal().toFixed(2)}€</span>
+
+                <div>
+                  <Label htmlFor="notes">Notes (optionnel)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Instructions spéciales..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={2}
+                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Notes */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base md:text-lg">Notes (optionnel)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Instructions spéciales..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                className="text-sm"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="space-y-2">
-            <Button
-              onClick={validerCommande}
-              disabled={isLoading || panier.length === 0}
-              className="w-full bg-red-600 hover:bg-red-700 h-10 md:h-11"
-            >
-              {isLoading ? "Création..." : "Valider la commande"}
-            </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="w-full h-10 md:h-11"
-            >
-              Annuler
-            </Button>
+                <div className="flex space-x-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep('commande')}
+                    className="flex-1"
+                  >
+                    Retour
+                  </Button>
+                  <Button
+                    onClick={() => setCurrentStep('validation')}
+                    disabled={!clientInfo.nom.trim() || (typeCommande === 'livraison' && (!clientInfo.telephone.trim() || !clientInfo.adresse.trim()))}
+                    className="flex-1"
+                  >
+                    Continuer
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
+        )}
+
+        {currentStep === 'validation' && (
+          <div className="p-6 max-w-lg mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Récapitulatif de la commande</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Type de commande */}
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span className="font-medium">Type:</span>
+                  <Badge variant="outline">
+                    {typeCommande === 'sur_place' ? 'Sur place' : 
+                     typeCommande === 'a_emporter' ? 'À emporter' : 'Livraison'}
+                  </Badge>
+                </div>
+
+                {/* Infos client */}
+                <div className="p-3 bg-muted rounded-lg space-y-2">
+                  <h4 className="font-medium flex items-center">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Client
+                  </h4>
+                  <p className="text-sm">{clientInfo.nom}</p>
+                  {typeCommande === 'livraison' && (
+                    <>
+                      <p className="text-sm">{clientInfo.telephone}</p>
+                      <p className="text-sm flex items-start">
+                        <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                        {clientInfo.adresse}
+                      </p>
+                    </>
+                  )}
+                  {notes && (
+                    <p className="text-sm text-muted-foreground italic">Notes: {notes}</p>
+                  )}
+                </div>
+
+                {/* Articles */}
+                <div>
+                  <h4 className="font-medium mb-3">Articles commandés</h4>
+                  <div className="space-y-2">
+                    {panier.map((item) => (
+                      <div key={item.produit.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{formatProduitNom(item.produit.nom, item.produit.categorie)}</p>
+                          <p className="text-xs text-muted-foreground">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
+                        </div>
+                        <p className="font-semibold">{(item.produit.prix * item.quantite).toFixed(2)}€</p>
+                      </div>
+                    ))}
+                  </div>
+                  <Separator className="my-3" />
+                  <div className="flex justify-between items-center text-lg font-bold">
+                    <span>Total:</span>
+                    <span className="text-primary">{calculerTotal().toFixed(2)}€</span>
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep('client')}
+                    className="flex-1"
+                  >
+                    Modifier
+                  </Button>
+                  <Button
+                    onClick={validerCommande}
+                    disabled={isLoading}
+                    className="flex-1"
+                  >
+                    {isLoading ? "Création..." : "Valider"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
