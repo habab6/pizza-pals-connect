@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAutoRefresh } from "@/hooks/useAutoRefresh";
-import { formatProduitNom } from "@/utils/formatters";
+import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
-import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
+import { stopNotificationSound } from "@/utils/notificationSound";
 
 interface Commande {
   id: string;
@@ -33,78 +32,23 @@ interface Commande {
 }
 
 const PizzaioloDashboard = () => {
-  const [commandes, setCommandes] = useState<Commande[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
 
-  const fetchCommandes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('commandes')
-        .select(`
-          *,
-          clients (nom),
-          commande_items (
-            quantite,
-            produits (nom, categorie, commerce)
-          )
-        `)
-        .in('statut_dolce_italia', ['nouveau', 'en_preparation', 'pret'])
-        .neq('statut_dolce_italia', 'termine')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      
-      // Filtrer les commandes qui contiennent des articles Dolce Italia (par catégorie)
-      const commandesDolce = (data || []).filter((commande: any) => 
-        commande.commande_items?.some((item: any) => 
-          ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
-        )
-      );
-      
-      setCommandes(commandesDolce as any);
-      
-      // Détecter les nouvelles commandes et jouer le son
-      const newCommandesCount = commandesDolce.filter((commande: any) => {
-        const itemsDolce = commande.commande_items?.filter((item: any) => 
-          ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
-        );
-        const statutDolce = commande.statut_dolce_italia || 'nouveau';
-        return itemsDolce.length > 0 && statutDolce === 'nouveau';
-      }).length;
-      
-      if (newCommandesCount > previousCommandesCount) {
-        playNotificationSound();
-      } else if (newCommandesCount === 0) {
-        stopNotificationSound();
-      }
-      
-      setPreviousCommandesCount(newCommandesCount);
-      
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les commandes"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Auto-refresh toutes les secondes
-  useAutoRefresh({ 
-    refreshFunction: fetchCommandes,
-    intervalMs: 1000,
-    enabled: true
+  // Hook optimisé - 3 secondes au lieu de 1 seconde pour le pizzaiolo
+  const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
+    role: 'cuisinier', // Utilise la même logique que le cuisinier mais filtrera pour Dolce Italia
+    intervalMs: 3000, // Réduit de 70% les requêtes
+    enableRealtime: true
   });
 
-  useEffect(() => {
-    fetchCommandes();
-  }, []);
+  // Filtrer les commandes Dolce Italia depuis les données optimisées
+  const commandesDolce = commandes.filter((commande: any) => 
+    commande.commande_items?.some((item: any) => 
+      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+    )
+  );
 
   const fetchCommandeComplete = async (commandeId: string) => {
     try {
@@ -149,6 +93,8 @@ const PizzaioloDashboard = () => {
         title: "Statut mis à jour",
         description: `Commande Dolce Italia marquée comme ${nouveauStatut.replace('_', ' ')}`
       });
+
+      forceRefresh();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -185,21 +131,21 @@ const PizzaioloDashboard = () => {
   };
 
   // Vérifier si une commande est mixte (contient des articles des deux commerces)
-  const isCommandeMixte = (commande: Commande) => {
-    const hasLSF = commande.commande_items.some(item => 
+  const isCommandeMixte = (commande: any) => {
+    const hasLSF = commande.commande_items?.some((item: any) => 
       ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
     );
-    const hasDolce = commande.commande_items.some(item => 
+    const hasDolce = commande.commande_items?.some((item: any) => 
       ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
     );
     return hasLSF && hasDolce;
   };
 
   // Filtrer les articles Dolce Italia de la commande
-  const getItemsDolce = (commande: Commande) => {
-    return commande.commande_items.filter(item => 
+  const getItemsDolce = (commande: any) => {
+    return commande.commande_items?.filter((item: any) => 
       ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
-    );
+    ) || [];
   };
 
   if (isLoading) {
@@ -214,7 +160,7 @@ const PizzaioloDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
         <ChefHat className="h-8 w-8 text-red-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Pizzaiolo - Dolce Italia</h2>
       </div>
 
       {/* Stats rapides */}
@@ -225,9 +171,9 @@ const PizzaioloDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouvelles commandes</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {commandes.filter(c => {
+                  {commandesDolce.filter((c: any) => {
                     const itemsDolce = getItemsDolce(c);
-                    const statutDolce = (c as any).statut_dolce_italia || 'nouveau';
+                    const statutDolce = c.statut_dolce_italia || 'nouveau';
                     return itemsDolce.length > 0 && statutDolce === 'nouveau';
                   }).length}
                 </p>
@@ -243,9 +189,9 @@ const PizzaioloDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {commandes.filter(c => {
+                  {commandesDolce.filter((c: any) => {
                     const itemsDolce = getItemsDolce(c);
-                    const statutDolce = (c as any).statut_dolce_italia || 'nouveau';
+                    const statutDolce = c.statut_dolce_italia || 'nouveau';
                     return itemsDolce.length > 0 && statutDolce === 'en_preparation';
                   }).length}
                 </p>
@@ -261,9 +207,9 @@ const PizzaioloDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prêtes</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {commandes.filter(c => {
+                  {commandesDolce.filter((c: any) => {
                     const itemsDolce = getItemsDolce(c);
-                    const statutDolce = (c as any).statut_dolce_italia || 'nouveau';
+                    const statutDolce = c.statut_dolce_italia || 'nouveau';
                     return itemsDolce.length > 0 && statutDolce === 'pret';
                   }).length}
                 </p>
@@ -276,16 +222,16 @@ const PizzaioloDashboard = () => {
 
       {/* Liste des commandes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        {commandes.length === 0 ? (
+        {commandesDolce.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <ChefHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">Aucune commande en attente</p>
           </div>
         ) : (
-          commandes.map((commande) => {
+          commandesDolce.map((commande: any) => {
             const itemsDolce = getItemsDolce(commande);
             const isMixte = isCommandeMixte(commande);
-            const statutDolce = (commande as any).statut_dolce_italia || 'nouveau';
+            const statutDolce = commande.statut_dolce_italia || 'nouveau';
             const isNouveau = statutDolce === 'nouveau';
             
             return (
@@ -304,7 +250,7 @@ const PizzaioloDashboard = () => {
                         </Badge>
                       )}
                     </div>
-                    {getStatusBadge(commande.statut)}
+                    {getStatusBadge(statutDolce)}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -312,10 +258,10 @@ const PizzaioloDashboard = () => {
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Articles Dolce Italia:</h4>
                     <div className="space-y-1">
-                       {itemsDolce.map((item, index) => (
+                       {itemsDolce.map((item: any, index: number) => (
                          <div key={index} className="flex justify-between items-center text-sm">
                            <div className="flex-1">
-                             <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                             <span>{item.quantite}x {item.produits.nom}</span>
                            </div>
                            <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
                              {item.produits.categorie}
@@ -342,7 +288,7 @@ const PizzaioloDashboard = () => {
 
                 {/* Actions */}
                 <div className="flex space-x-2 pt-2">
-                  {((commande as any).statut_dolce_italia || 'nouveau') === 'nouveau' && (
+                  {statutDolce === 'nouveau' && (
                     <Button
                       onClick={() => changerStatut(commande.id, 'en_preparation')}
                       className="flex-1 bg-orange-600 hover:bg-orange-700"
@@ -351,7 +297,7 @@ const PizzaioloDashboard = () => {
                       Commencer
                     </Button>
                   )}
-                  {((commande as any).statut_dolce_italia || 'nouveau') === 'en_preparation' && (
+                  {statutDolce === 'en_preparation' && (
                     <Button
                       onClick={() => changerStatut(commande.id, 'pret')}
                       className="flex-1 bg-green-600 hover:bg-green-700"
@@ -360,7 +306,7 @@ const PizzaioloDashboard = () => {
                       Terminé
                     </Button>
                   )}
-                  {((commande as any).statut_dolce_italia || 'nouveau') === 'pret' && (
+                  {statutDolce === 'pret' && (
                     <div className="flex-1 text-center py-2">
                       <Badge variant="default" className="bg-green-600">
                         <CheckCircle className="h-3 w-3 mr-1" />
