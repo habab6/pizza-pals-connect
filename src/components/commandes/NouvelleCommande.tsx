@@ -217,6 +217,23 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         clientId = nouveauClient.id;
       }
 
+      // Déterminer le commerce principal en fonction des articles
+      const commerces = new Set();
+      panier.forEach(item => {
+        const categorie = item.produit.categorie;
+        if (['pizzas', 'pates', 'desserts'].includes(categorie)) {
+          commerces.add('dolce_italia');
+        } else if (['sandwiches', 'entrees', 'bowls_salades', 'frites'].includes(categorie)) {
+          commerces.add('961_lsf');
+        } else {
+          // Boissons peuvent appartenir aux deux
+          commerces.add('dolce_italia');
+        }
+      });
+      
+      // Si mixte, choisir en fonction de la majorité ou par défaut dolce_italia
+      const commerce_principal = commerces.has('dolce_italia') ? 'dolce_italia' : '961_lsf';
+
       const { data: commande, error: commandeError } = await supabase
         .from('commandes')
         .insert({
@@ -225,7 +242,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           caissier_id: null,
           total: calculerTotal(),
           notes: notesGenerales.trim() || null,
-          numero_commande: `CMD${Date.now()}`
+          numero_commande: `CMD${Date.now()}`,
+          commerce_principal: commerce_principal
         })
         .select()
         .single();

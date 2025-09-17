@@ -63,7 +63,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
 
       if (error) throw error;
       console.log('GestionArticles: produits set', data?.length);
-      setProduits((data || []) as Produit[]);
+      setProduits((data || []) as any);
     } catch (error: any) {
       console.error('GestionArticles: fetch error', error);
       toast({

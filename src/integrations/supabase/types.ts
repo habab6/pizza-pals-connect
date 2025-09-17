@@ -90,6 +90,7 @@ export type Database = {
         Row: {
           caissier_id: string | null
           client_id: string | null
+          commerce_principal: Database["public"]["Enums"]["commerce_type"]
           created_at: string
           id: string
           livreur_id: string | null
@@ -105,6 +106,7 @@ export type Database = {
         Insert: {
           caissier_id?: string | null
           client_id?: string | null
+          commerce_principal: Database["public"]["Enums"]["commerce_type"]
           created_at?: string
           id?: string
           livreur_id?: string | null
@@ -120,6 +122,7 @@ export type Database = {
         Update: {
           caissier_id?: string | null
           client_id?: string | null
+          commerce_principal?: Database["public"]["Enums"]["commerce_type"]
           created_at?: string
           id?: string
           livreur_id?: string | null
@@ -211,6 +214,7 @@ export type Database = {
       produits: {
         Row: {
           categorie: Database["public"]["Enums"]["product_category"]
+          commerce: Database["public"]["Enums"]["commerce_type"]
           created_at: string
           disponible: boolean
           id: string
@@ -220,6 +224,7 @@ export type Database = {
         }
         Insert: {
           categorie: Database["public"]["Enums"]["product_category"]
+          commerce?: Database["public"]["Enums"]["commerce_type"]
           created_at?: string
           disponible?: boolean
           id?: string
@@ -229,6 +234,7 @@ export type Database = {
         }
         Update: {
           categorie?: Database["public"]["Enums"]["product_category"]
+          commerce?: Database["public"]["Enums"]["commerce_type"]
           created_at?: string
           disponible?: boolean
           id?: string
@@ -270,12 +276,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      determine_commerce_principal: {
+        Args: { commande_uuid: string }
+        Returns: Database["public"]["Enums"]["commerce_type"]
+      }
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
     }
     Enums: {
+      commerce_type: "dolce_italia" | "961_lsf"
       order_status:
         | "nouveau"
         | "en_preparation"
@@ -285,8 +296,16 @@ export type Database = {
         | "termine"
       order_type: "sur_place" | "a_emporter" | "livraison"
       payment_method: "bancontact" | "visa" | "mastercard" | "cash"
-      product_category: "pizzas" | "pates" | "desserts" | "boissons"
-      user_role: "caissier" | "pizzaiolo" | "livreur"
+      product_category:
+        | "pizzas"
+        | "pates"
+        | "desserts"
+        | "boissons"
+        | "entrees"
+        | "bowls_salades"
+        | "frites"
+        | "sandwiches"
+      user_role: "caissier" | "pizzaiolo" | "livreur" | "cuisinier"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -414,6 +433,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      commerce_type: ["dolce_italia", "961_lsf"],
       order_status: [
         "nouveau",
         "en_preparation",
@@ -424,8 +444,17 @@ export const Constants = {
       ],
       order_type: ["sur_place", "a_emporter", "livraison"],
       payment_method: ["bancontact", "visa", "mastercard", "cash"],
-      product_category: ["pizzas", "pates", "desserts", "boissons"],
-      user_role: ["caissier", "pizzaiolo", "livreur"],
+      product_category: [
+        "pizzas",
+        "pates",
+        "desserts",
+        "boissons",
+        "entrees",
+        "bowls_salades",
+        "frites",
+        "sandwiches",
+      ],
+      user_role: ["caissier", "pizzaiolo", "livreur", "cuisinier"],
     },
   },
 } as const
