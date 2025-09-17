@@ -109,11 +109,17 @@ const LivreurDashboard = () => {
   const accepterLivraison = async (commandeId: string) => {
     try {
       console.log('[Livreur] Click accepterLivraison pour', commandeId);
+      
+      // Mettre à jour tous les statuts pour forcer le passage à "en_livraison"
       const { data, error } = await supabase
         .from('commandes')
-        .update({ statut: 'en_livraison' })
+        .update({ 
+          statut: 'en_livraison',
+          statut_dolce_italia: 'en_livraison',
+          statut_961_lsf: 'en_livraison'
+        })
         .eq('id', commandeId)
-        .select('id, statut');
+        .select('id, statut, statut_dolce_italia, statut_961_lsf');
 
       console.log('[Livreur] Update result:', { data, error });
 
