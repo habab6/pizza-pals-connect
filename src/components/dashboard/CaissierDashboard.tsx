@@ -391,7 +391,7 @@ const CaissierDashboard = () => {
       {/* Liste des commandes */}
       <Card>
         <CardHeader>
-          <CardTitle>Commandes récentes</CardTitle>
+          <CardTitle>Commandes en cours</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
