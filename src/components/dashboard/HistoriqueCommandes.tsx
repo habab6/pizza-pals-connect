@@ -129,17 +129,17 @@ const HistoriqueCommandes = () => {
           <span className="hidden md:inline">Historique</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh]">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center space-x-3">
             <History className="h-6 w-6 text-red-600" />
             <span>Historique des commandes terminées</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 flex flex-col space-y-4 min-h-0">
           {/* Stats rapides */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -184,7 +184,7 @@ const HistoriqueCommandes = () => {
           </div>
 
           {/* Barre de recherche */}
-          <div className="relative">
+          <div className="flex-shrink-0 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Rechercher par numéro de commande, client ou type..."
@@ -195,41 +195,44 @@ const HistoriqueCommandes = () => {
           </div>
 
           {/* Liste des commandes */}
-          <ScrollArea className="h-[400px]">
-            <div className="space-y-3">
-              {filteredCommandes.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">
-                  {searchTerm ? "Aucune commande trouvée" : "Aucune commande terminée"}
-                </p>
-              ) : (
-                filteredCommandes.map((commande) => (
-                  <div key={commande.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4 mb-2">
-                        <h3 className="font-semibold text-lg">{commande.numero_commande}</h3>
-                        <Badge variant="success">Terminé</Badge>
-                        <Badge variant="outline">{getTypeCommande(commande.type_commande)}</Badge>
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="space-y-3 pr-4">
+                {filteredCommandes.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    {searchTerm ? "Aucune commande trouvée" : "Aucune commande terminée"}
+                  </p>
+                ) : (
+                  filteredCommandes.map((commande) => (
+                    <div key={commande.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-4 mb-2">
+                          <h3 className="font-semibold text-lg">{commande.numero_commande}</h3>
+                          <Badge variant="success">Terminé</Badge>
+                          <Badge variant="outline">{getTypeCommande(commande.type_commande)}</Badge>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span>Total: {commande.total.toFixed(2)}€</span>
+                          {commande.clients && (
+                            <span>Client: {commande.clients.nom}</span>
+                          )}
+                          <span>{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span>Total: {commande.total.toFixed(2)}€</span>
-                        {commande.clients && (
-                          <span>Client: {commande.clients.nom}</span>
-                        )}
-                        <span>{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
-                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => voirDetails(commande.id)}
+                        className="ml-4 flex-shrink-0"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => voirDetails(commande.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
 
         {/* Modale des détails de commande */}

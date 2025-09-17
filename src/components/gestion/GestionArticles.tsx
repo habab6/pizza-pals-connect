@@ -295,7 +295,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       </div>
 
       {/* Liste des produits */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
           <div className="p-4 space-y-3">
             {filteredProducts.length === 0 ? (
@@ -310,17 +310,17 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                   <Card key={product.id} className="transition-all hover:shadow-md">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 flex-1">
-                          <div className="text-2xl">{categoryInfo.icon}</div>
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="text-2xl flex-shrink-0">{categoryInfo.icon}</div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="font-medium truncate">{product.nom}</h3>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs flex-shrink-0">
                                 {categoryInfo.label}
                               </Badge>
                               <Badge 
                                 variant={product.disponible ? "success" : "secondary"}
-                                className="text-xs"
+                                className="text-xs flex-shrink-0"
                               >
                                 {product.disponible ? "Disponible" : "Indisponible"}
                               </Badge>
@@ -329,7 +329,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 ml-4">
+                        <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
                           <Button
                             variant="outline"
                             size="sm"
