@@ -108,10 +108,14 @@ const LivreurDashboard = () => {
 
   const accepterLivraison = async (commandeId: string) => {
     try {
-      const { error } = await supabase
+      console.log('[Livreur] Click accepterLivraison pour', commandeId);
+      const { data, error } = await supabase
         .from('commandes')
         .update({ statut: 'en_livraison' })
-        .eq('id', commandeId);
+        .eq('id', commandeId)
+        .select('id, statut');
+
+      console.log('[Livreur] Update result:', { data, error });
 
       if (error) {
         console.error("Erreur lors de l'acceptation:", error);
