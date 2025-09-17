@@ -43,20 +43,28 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('GestionArticles: useEffect called');
     fetchProduits();
   }, []);
 
   const fetchProduits = async () => {
+    console.log('GestionArticles: fetchProduits called');
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('produits')
         .select('*')
         .order('categorie', { ascending: true })
         .order('nom', { ascending: true });
 
+      console.log('GestionArticles: data received', data);
+      console.log('GestionArticles: error', error);
+
       if (error) throw error;
       setProduits(data || []);
+      console.log('GestionArticles: produits set', data?.length);
     } catch (error: any) {
+      console.error('GestionArticles: fetch error', error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -64,6 +72,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       });
     } finally {
       setIsLoading(false);
+      console.log('GestionArticles: loading finished');
     }
   };
 
