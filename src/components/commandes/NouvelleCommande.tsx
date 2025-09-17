@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
-import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone, MessageSquare, ChevronRight, Edit3 } from "lucide-react";
+import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone, MessageSquare, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -23,7 +23,6 @@ interface Produit {
 interface CartItem {
   produit: Produit;
   quantite: number;
-  notes?: string;
 }
 
 interface Client {
@@ -52,7 +51,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentView, setCurrentView] = useState<'menu' | 'client'>('menu');
   const [categorieActive, setCategorieActive] = useState<string>('pizzas');
-  const [editingItemNotes, setEditingItemNotes] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -119,7 +117,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             : item
         );
       }
-      return [...prev, { produit, quantite: 1, notes: '' }];
+      return [...prev, { produit, quantite: 1 }];
     });
   };
 
@@ -134,14 +132,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         }
         return item;
       }).filter(Boolean) as CartItem[]
-    );
-  };
-
-  const modifierNotesItem = (produitId: string, notes: string) => {
-    setPanier(prev =>
-      prev.map(item =>
-        item.produit.id === produitId ? { ...item, notes } : item
-      )
     );
   };
 
@@ -247,7 +237,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         produit_id: item.produit.id,
         quantite: item.quantite,
         prix_unitaire: item.produit.prix,
-        remarque: item.notes?.trim() || null
+        remarque: null
       }));
 
       const { error: itemsError } = await supabase
@@ -381,97 +371,70 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                 </div>
               </div>
 
-              {/* Liste des produits */}
+              {/* Liste des produits - Limitée à 4 items visibles */}
               <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {produits
-                        .filter(p => p.categorie === categorieActive)
-                        .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
-                        .map(produit => {
-                          const quantiteInPanier = getQuantiteInPanier(produit.id);
-                          const isSelected = quantiteInPanier > 0;
-                          
-                          return (
-                            <Card 
-                              key={produit.id} 
-                              className={`transition-all hover:shadow-md cursor-pointer ${
-                                isSelected ? 'ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/50'
-                              }`}
-                            >
-                              <CardContent className="p-3">
-                                <div className="space-y-3">
-                                  {/* Info produit */}
-                                  <div className="text-center">
-                                    <h4 className="font-medium text-sm leading-tight line-clamp-2 mb-2">
-                                      {formatProduitNom(produit.nom, produit.categorie)}
-                                    </h4>
-                                    <p className="text-primary font-bold text-lg">{produit.prix.toFixed(2)}€</p>
-                                  </div>
-                                  
-                                  {/* Contrôles quantité */}
-                                  {isSelected ? (
-                                    <div className="space-y-2">
-                                      <div className="flex items-center justify-center space-x-2">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            modifierQuantite(produit.id, -1);
-                                          }}
-                                          className="h-8 w-8 p-0"
-                                        >
-                                          <Minus className="h-3 w-3" />
-                                        </Button>
-                                        <Badge variant="secondary" className="min-w-[2.5rem] justify-center font-bold">
-                                          {quantiteInPanier}
-                                        </Badge>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            modifierQuantite(produit.id, 1);
-                                          }}
-                                          className="h-8 w-8 p-0"
-                                        >
-                                          <Plus className="h-3 w-3" />
-                                        </Button>
-                                      </div>
+                <div className="p-4">
+                  <div className="space-y-3 max-h-[480px] overflow-y-auto">
+                    {produits
+                      .filter(p => p.categorie === categorieActive)
+                      .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(produit => {
+                        const quantiteInPanier = getQuantiteInPanier(produit.id);
+                        const isSelected = quantiteInPanier > 0;
+                        
+                        return (
+                          <Card 
+                            key={produit.id} 
+                            className={`transition-all hover:shadow-md ${
+                              isSelected ? 'ring-2 ring-primary/20 bg-primary/5' : ''
+                            }`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm mb-1 truncate">{formatProduitNom(produit.nom, produit.categorie)}</h4>
+                                  <p className="text-primary font-bold">{produit.prix.toFixed(2)}€</p>
+                                </div>
+                                
+                                <div className="flex items-center space-x-3 ml-4">
+                                  {isSelected && (
+                                    <div className="flex items-center space-x-2">
                                       <Button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          ajouterAuPanier(produit);
-                                        }}
                                         size="sm"
-                                        className="w-full h-8"
                                         variant="outline"
+                                        onClick={() => modifierQuantite(produit.id, -1)}
+                                        className="h-8 w-8 p-0"
                                       >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Ajouter
+                                        <Minus className="h-3 w-3" />
+                                      </Button>
+                                      <Badge variant="secondary" className="min-w-[2.5rem] justify-center font-bold">
+                                        {quantiteInPanier}
+                                      </Badge>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => modifierQuantite(produit.id, 1)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Plus className="h-3 w-3" />
                                       </Button>
                                     </div>
-                                  ) : (
-                                    <Button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        ajouterAuPanier(produit);
-                                      }}
-                                      size="sm"
-                                      className="w-full"
-                                    >
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Ajouter
-                                    </Button>
                                   )}
+                                  
+                                  <Button
+                                    onClick={() => ajouterAuPanier(produit)}
+                                    size="sm"
+                                    className={isSelected ? 'bg-primary/80' : ''}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Ajouter
+                                  </Button>
                                 </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                    </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     
                     {/* Message si aucun produit */}
                     {produits
@@ -484,23 +447,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                         </div>
                       )}
                   </div>
-                </ScrollArea>
-              </div>
-
-              {/* Notes générales */}
-              <div className="flex-shrink-0 p-4 border-t bg-muted/30">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium flex items-center">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Instructions spéciales
-                  </Label>
-                  <Textarea
-                    placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
-                    value={notesGenerales}
-                    onChange={(e) => setNotesGenerales(e.target.value)}
-                    rows={2}
-                    className="text-sm resize-none"
-                  />
                 </div>
               </div>
             </div>
@@ -572,33 +518,29 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                                 </div>
                               </div>
                               
-                              <div className="flex justify-between items-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingItemNotes(editingItemNotes === item.produit.id ? null : item.produit.id)}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  <Edit3 className="h-3 w-3 mr-1" />
-                                  Notes
-                                </Button>
+                              <div className="flex justify-end">
                                 <p className="text-sm font-bold text-primary">
                                   {(item.produit.prix * item.quantite).toFixed(2)}€
                                 </p>
                               </div>
-                              
-                              {editingItemNotes === item.produit.id && (
-                                <Textarea
-                                  placeholder="Notes pour cet article..."
-                                  value={item.notes || ''}
-                                  onChange={(e) => modifierNotesItem(item.produit.id, e.target.value)}
-                                  rows={2}
-                                  className="text-xs"
-                                />
-                              )}
                             </div>
                           </Card>
                         ))}
+                        
+                        {/* Instructions spéciales dans le panier */}
+                        <div className="pt-2">
+                          <Label className="text-sm font-medium flex items-center mb-2">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Instructions spéciales
+                          </Label>
+                          <Textarea
+                            placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
+                            value={notesGenerales}
+                            onChange={(e) => setNotesGenerales(e.target.value)}
+                            rows={2}
+                            className="text-sm resize-none"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
