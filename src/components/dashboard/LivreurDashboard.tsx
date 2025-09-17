@@ -247,7 +247,7 @@ const LivreurDashboard = () => {
       </div>
 
       {/* Stats rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -256,18 +256,6 @@ const LivreurDashboard = () => {
                 <p className="text-2xl font-bold text-red-600">{commandes.length}</p>
               </div>
               <Clock className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Mes livraisons</p>
-                <p className="text-2xl font-bold text-orange-600">{mesLivraisons.length}</p>
-              </div>
-              <Truck className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
