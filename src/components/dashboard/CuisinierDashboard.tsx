@@ -276,7 +276,7 @@ const CuisinierDashboard = () => {
                         {itemsLSF.map((item, index) => (
                           <div key={index} className="flex justify-between items-center text-sm bg-red-50 p-2 rounded">
                             <div className="flex-1">
-                              <span className="font-medium">{item.quantite}x</span> {formatProduitNom(item.produits.nom)}
+                              <span className="font-medium">{item.quantite}x</span> {item.produits.nom}
                             </div>
                             <Badge variant="outline" className="text-xs">
                               {item.produits.categorie}
