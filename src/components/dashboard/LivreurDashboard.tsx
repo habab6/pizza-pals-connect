@@ -152,16 +152,21 @@ const LivreurDashboard = () => {
 
   const accepterLivraison = async (commandeId: string) => {
     try {
-      let updateData: any = { statut: 'en_livraison' };
-      if (livreurProfileId) {
-        updateData.livreur_id = livreurProfileId;
-      }
+      const updateData: any = { 
+        statut: 'en_livraison',
+        // Pour l'instant, on assigne un ID temporaire jusqu'à l'implémentation de l'authentification
+        livreur_id: livreurProfileId || 'temp-livreur'
+      };
+      
       const { error } = await supabase
         .from('commandes')
         .update(updateData)
         .eq('id', commandeId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de l\'acceptation:', error);
+        throw error;
+      }
 
       toast({
         title: "Livraison acceptée",
@@ -170,10 +175,11 @@ const LivreurDashboard = () => {
 
       fetchCommandes();
     } catch (error: any) {
+      console.error('Erreur complète:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'accepter la livraison"
+        description: `Impossible d'accepter la livraison: ${error.message || 'Erreur inconnue'}`
       });
     }
   };
