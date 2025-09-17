@@ -65,10 +65,28 @@ export const usePushNotifications = () => {
 
       const registration = await navigator.serviceWorker.ready;
       
-      // Clé publique VAPID (configurée côté serveur)
-      const applicationServerKey = urlBase64ToUint8Array(
-        'BFZQsKeuEglGrBceuDdXNQRxXH4rIrQvUU8anV4MFWnL8JKtN8xysKF-aGvLRh_9_ZD-8VHvaHOEfJ6WYmibFDs'
-      );
+      // Récupérer la clé publique VAPID du serveur
+      let publicKeyToUse = 'BFZQsKeuEglGrBceuDdXNQRxXH4rIrQvUU8anV4MFWnL8JKtN8xysKF-aGvLRh_9_ZD-8VHvaHOEfJ6WYmibFDs'; // Fallback
+      
+      try {
+        const response = await fetch('https://rllqnpopmacbyyhnhljc.supabase.co/functions/v1/web-push-send/vapid-key', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsbHFucG9wbWFjYnl5aG5obGpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NjA2NjQsImV4cCI6MjA3MzUzNjY2NH0.FX2YUqRe9iYwrlYhhfsWOvcYq9YhrCgc7wRGlryB5jM`,
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.publicKey) {
+            publicKeyToUse = data.publicKey;
+          }
+        }
+      } catch (error) {
+        console.warn('Impossible de récupérer la clé VAPID du serveur:', error);
+      }
+      
+      const applicationServerKey = urlBase64ToUint8Array(publicKeyToUse);
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
