@@ -16,6 +16,7 @@ interface Produit {
   id: string;
   nom: string;
   categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
+  commerce: 'dolce_italia' | '961_lsf';
   prix: number;
   disponible: boolean;
   created_at: string;
@@ -61,8 +62,8 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       console.log('GestionArticles: error', error);
 
       if (error) throw error;
-      setProduits(data || []);
       console.log('GestionArticles: produits set', data?.length);
+      setProduits((data || []) as Produit[]);
     } catch (error: any) {
       console.error('GestionArticles: fetch error', error);
       toast({
@@ -325,18 +326,21 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                         <div className="flex items-center space-x-3 flex-1 min-w-0">
                           <div className="text-2xl flex-shrink-0">{categoryInfo.icon}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h3 className="font-medium truncate">{product.nom}</h3>
-                              <Badge variant="outline" className="text-xs flex-shrink-0">
-                                {categoryInfo.label}
-                              </Badge>
-                              <Badge 
-                                variant={product.disponible ? "success" : "secondary"}
-                                className="text-xs flex-shrink-0"
-                              >
-                                {product.disponible ? "Disponible" : "Indisponible"}
-                              </Badge>
-                            </div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h3 className="font-medium truncate">{product.nom}</h3>
+                            <Badge variant="outline" className="text-xs flex-shrink-0">
+                              {categoryInfo.label}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs flex-shrink-0 bg-blue-50 text-blue-700">
+                              {product.commerce === 'dolce_italia' ? 'Dolce Italia' : '961 LSF'}
+                            </Badge>
+                            <Badge 
+                              variant={product.disponible ? "success" : "secondary"}
+                              className="text-xs flex-shrink-0"
+                            >
+                              {product.disponible ? "Disponible" : "Indisponible"}
+                            </Badge>
+                          </div>
                             <p className="text-lg font-bold text-primary">{product.prix.toFixed(2)}€</p>
                           </div>
                         </div>
