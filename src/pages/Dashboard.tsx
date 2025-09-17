@@ -11,7 +11,7 @@ import { usePosteAuth } from "@/hooks/usePosteAuth";
 const Dashboard = () => {
   const { role } = useParams<{ role: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, logout, currentSession } = usePosteAuth();
+  const { isAuthenticated, logout, currentSession, initialized } = usePosteAuth();
 
   useEffect(() => {
     // Vérifier l'authentification au chargement de la page
@@ -20,12 +20,14 @@ const Dashboard = () => {
       return;
     }
 
+    if (!initialized) return; // attendre l'initialisation de la session
+
     if (!isAuthenticated(role)) {
       // Pas authentifié pour ce poste, rediriger vers l'accueil
       navigate("/");
       return;
     }
-  }, [role, isAuthenticated, navigate]);
+  }, [role, initialized, isAuthenticated, navigate]);
 
   const handleLogout = () => {
     logout();

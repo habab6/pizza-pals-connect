@@ -13,6 +13,7 @@ const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 heures en millisecondes
 
 export const usePosteAuth = () => {
   const [currentSession, setCurrentSession] = useState<PosteSession | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     // Vérifier s'il y a une session valide au chargement
@@ -31,7 +32,11 @@ export const usePosteAuth = () => {
         }
       } catch (error) {
         localStorage.removeItem('posteSession');
+      } finally {
+        setInitialized(true);
       }
+    } else {
+      setInitialized(true);
     }
   }, []);
 
@@ -113,6 +118,7 @@ export const usePosteAuth = () => {
     currentSession,
     authenticatePoste,
     logout,
-    isAuthenticated
+    isAuthenticated,
+    initialized
   };
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,6 +71,9 @@ export const PosteLoginModal = ({
             <Lock className="h-5 w-5 text-red-600" />
             <span>Accès sécurisé</span>
           </DialogTitle>
+          <DialogDescription>
+            Saisissez le mot de passe pour accéder à cet espace de travail.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
