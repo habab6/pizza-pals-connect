@@ -44,33 +44,13 @@ const LivreurDashboard = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
   
-  // Profil du livreur (si connecté)
-  const [livreurProfileId, setLivreurProfileId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-      if (!user) {
-        setLivreurProfileId(null);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .eq('user_id', user.id)
-        .eq('role', 'livreur')
-        .single();
-      setLivreurProfileId(profile?.id ?? null);
-    };
-    fetchProfile();
-  }, []);
+  // Pas besoin de profil livreur - une seule personne par rôle
 
   
 
   const fetchCommandes = useCallback(async () => {
     try {
-      // Commandes prêtes pour livraison (non assignées)
+      // Commandes prêtes pour livraison
       const { data: commandesDisponibles, error: error1 } = await supabase
         .from('commandes')
         .select(`
@@ -83,45 +63,21 @@ const LivreurDashboard = () => {
         `)
         .eq('type_commande', 'livraison')
         .eq('statut', 'pret')
-        .is('livreur_id', null)
         .order('created_at', { ascending: true });
 
-      // Mes livraisons en cours
-      let mesLivraisonsData = null;
-      let error2 = null as any;
-      if (livreurProfileId) {
-        const res = await supabase
-          .from('commandes')
-          .select(`
-            *,
-            clients (nom, telephone, adresse),
-            commande_items (
-              quantite,
-              produits (nom, categorie)
-            )
-          `)
-          .eq('livreur_id', livreurProfileId)
-          .in('statut', ['en_livraison'])
-          .order('created_at', { ascending: true });
-        mesLivraisonsData = res.data;
-        error2 = res.error;
-      } else {
-        const res = await supabase
-          .from('commandes')
-          .select(`
-            *,
-            clients (nom, telephone, adresse),
-           commande_items (
-             quantite,
-             produits (nom, categorie)
-           )
-          `)
-          .is('livreur_id', null)
-          .in('statut', ['en_livraison'])
-          .order('created_at', { ascending: true });
-        mesLivraisonsData = res.data;
-        error2 = res.error;
-      }
+      // Livraisons en cours
+      const { data: mesLivraisonsData, error: error2 } = await supabase
+        .from('commandes')
+        .select(`
+          *,
+          clients (nom, telephone, adresse),
+          commande_items (
+            quantite,
+            produits (nom, categorie)
+          )
+        `)
+        .eq('statut', 'en_livraison')
+        .order('created_at', { ascending: true });
 
       if (error1) throw error1;
       if (error2) throw error2;
@@ -137,7 +93,7 @@ const LivreurDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [livreurProfileId, toast]);
+  }, [toast]);
 
   // Auto-refresh toutes les secondes
   useAutoRefresh({ 
@@ -152,14 +108,9 @@ const LivreurDashboard = () => {
 
   const accepterLivraison = async (commandeId: string) => {
     try {
-      const updateData: any = { statut: 'en_livraison' };
-      if (livreurProfileId) {
-        updateData.livreur_id = livreurProfileId;
-      }
-
       const { error } = await supabase
         .from('commandes')
-        .update(updateData)
+        .update({ statut: 'en_livraison' })
         .eq('id', commandeId);
 
       if (error) {
@@ -169,9 +120,7 @@ const LivreurDashboard = () => {
 
       toast({
         title: "Livraison acceptée",
-        description: livreurProfileId
-          ? "La commande a été assignée à vous"
-          : "Commande acceptée (non assignée à un livreur car non connecté)"
+        description: "La commande est maintenant en cours de livraison"
       });
 
       fetchCommandes();
