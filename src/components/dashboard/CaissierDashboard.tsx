@@ -275,7 +275,7 @@ const CaissierDashboard = () => {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
         <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center space-x-2">
           <Receipt className="h-6 w-6 text-red-600" />
-          <span>Tableau de bord - Caissier</span>
+          <span>Tableau de bord</span>
         </h2>
         <div className="flex flex-wrap gap-2">
           <HistoriqueCommandes />

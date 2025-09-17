@@ -189,7 +189,7 @@ const PizzaioloDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
         <ChefHat className="h-8 w-8 text-red-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Pizzaiolo</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord</h2>
       </div>
 
       {/* Stats rapides */}

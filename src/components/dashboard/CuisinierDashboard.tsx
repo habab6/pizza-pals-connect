@@ -189,7 +189,7 @@ const CuisinierDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
         <Sandwich className="h-8 w-8 text-orange-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Cuisinier 961 LSF</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord</h2>
       </div>
 
       {/* Stats rapides */}
