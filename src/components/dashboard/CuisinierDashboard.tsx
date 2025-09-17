@@ -50,8 +50,8 @@ const CuisinierDashboard = () => {
             produits (nom, categorie, commerce)
           )
         `)
-        .in('statut', ['nouveau', 'en_preparation', 'pret'])
-        .neq('statut', 'termine')
+        .in('statut_961_lsf', ['nouveau', 'en_preparation', 'pret'])
+        .neq('statut_961_lsf', 'termine')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -115,14 +115,14 @@ const CuisinierDashboard = () => {
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ statut: nouveauStatut })
+        .update({ statut_961_lsf: nouveauStatut })
         .eq('id', commandeId);
 
       if (error) throw error;
 
       toast({
         title: "Statut mis à jour",
-        description: `Commande marquée comme ${nouveauStatut.replace('_', ' ')}`
+        description: `Commande 961 LSF marquée comme ${nouveauStatut.replace('_', ' ')}`
       });
     } catch (error: any) {
       toast({
@@ -200,7 +200,11 @@ const CuisinierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouvelles commandes</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {commandes.filter(c => c.statut === 'nouveau').length}
+                  {commandes.filter(c => {
+                    const itemsLSF = getItemsLSF(c);
+                    const statutLSF = (c as any).statut_961_lsf || 'nouveau';
+                    return itemsLSF.length > 0 && statutLSF === 'nouveau';
+                  }).length}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-orange-600" />
@@ -214,7 +218,11 @@ const CuisinierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {commandes.filter(c => c.statut === 'en_preparation').length}
+                  {commandes.filter(c => {
+                    const itemsLSF = getItemsLSF(c);
+                    const statutLSF = (c as any).statut_961_lsf || 'nouveau';
+                    return itemsLSF.length > 0 && statutLSF === 'en_preparation';
+                  }).length}
                 </p>
               </div>
               <ChefHat className="h-8 w-8 text-blue-600" />
@@ -228,7 +236,11 @@ const CuisinierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prêtes</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {commandes.filter(c => c.statut === 'pret').length}
+                  {commandes.filter(c => {
+                    const itemsLSF = getItemsLSF(c);
+                    const statutLSF = (c as any).statut_961_lsf || 'nouveau';
+                    return itemsLSF.length > 0 && statutLSF === 'pret';
+                  }).length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -303,7 +315,7 @@ const CuisinierDashboard = () => {
 
                   {/* Actions */}
                   <div className="flex space-x-2 pt-2">
-                    {commande.statut === 'nouveau' && (
+                    {((commande as any).statut_961_lsf || 'nouveau') === 'nouveau' && (
                       <Button
                         onClick={() => changerStatut(commande.id, 'en_preparation')}
                         className="flex-1 bg-blue-600 hover:bg-blue-700"
@@ -312,7 +324,7 @@ const CuisinierDashboard = () => {
                         Commencer
                       </Button>
                     )}
-                    {commande.statut === 'en_preparation' && (
+                    {((commande as any).statut_961_lsf || 'nouveau') === 'en_preparation' && (
                       <Button
                         onClick={() => changerStatut(commande.id, 'pret')}
                         className="flex-1 bg-green-600 hover:bg-green-700"
@@ -321,7 +333,7 @@ const CuisinierDashboard = () => {
                         Terminé
                       </Button>
                     )}
-                    {commande.statut === 'pret' && (
+                    {((commande as any).statut_961_lsf || 'nouveau') === 'pret' && (
                       <div className="flex-1 text-center py-2">
                         <Badge variant="default" className="bg-green-600">
                           <CheckCircle className="h-3 w-3 mr-1" />

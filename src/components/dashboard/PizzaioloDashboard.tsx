@@ -50,8 +50,8 @@ const PizzaioloDashboard = () => {
             produits (nom, categorie, commerce)
           )
         `)
-        .in('statut', ['nouveau', 'en_preparation', 'pret'])
-        .neq('statut', 'termine')
+        .in('statut_dolce_italia', ['nouveau', 'en_preparation', 'pret'])
+        .neq('statut_dolce_italia', 'termine')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -115,14 +115,14 @@ const PizzaioloDashboard = () => {
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ statut: nouveauStatut })
+        .update({ statut_dolce_italia: nouveauStatut })
         .eq('id', commandeId);
 
       if (error) throw error;
 
       toast({
         title: "Statut mis à jour",
-        description: `Commande marquée comme ${nouveauStatut.replace('_', ' ')}`
+        description: `Commande Dolce Italia marquée comme ${nouveauStatut.replace('_', ' ')}`
       });
     } catch (error: any) {
       toast({
@@ -200,7 +200,11 @@ const PizzaioloDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouvelles commandes</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {commandes.filter(c => c.statut === 'nouveau').length}
+                  {commandes.filter(c => {
+                    const itemsDolce = getItemsDolce(c);
+                    const statutDolce = (c as any).statut_dolce_italia || 'nouveau';
+                    return itemsDolce.length > 0 && statutDolce === 'nouveau';
+                  }).length}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-red-600" />
@@ -214,7 +218,11 @@ const PizzaioloDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {commandes.filter(c => c.statut === 'en_preparation').length}
+                  {commandes.filter(c => {
+                    const itemsDolce = getItemsDolce(c);
+                    const statutDolce = (c as any).statut_dolce_italia || 'nouveau';
+                    return itemsDolce.length > 0 && statutDolce === 'en_preparation';
+                  }).length}
                 </p>
               </div>
               <ChefHat className="h-8 w-8 text-orange-600" />
@@ -228,7 +236,11 @@ const PizzaioloDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prêtes</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {commandes.filter(c => c.statut === 'pret').length}
+                  {commandes.filter(c => {
+                    const itemsDolce = getItemsDolce(c);
+                    const statutDolce = (c as any).statut_dolce_italia || 'nouveau';
+                    return itemsDolce.length > 0 && statutDolce === 'pret';
+                  }).length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -303,7 +315,7 @@ const PizzaioloDashboard = () => {
 
                 {/* Actions */}
                 <div className="flex space-x-2 pt-2">
-                  {commande.statut === 'nouveau' && (
+                  {((commande as any).statut_dolce_italia || 'nouveau') === 'nouveau' && (
                     <Button
                       onClick={() => changerStatut(commande.id, 'en_preparation')}
                       className="flex-1 bg-orange-600 hover:bg-orange-700"
@@ -312,7 +324,7 @@ const PizzaioloDashboard = () => {
                       Commencer
                     </Button>
                   )}
-                  {commande.statut === 'en_preparation' && (
+                  {((commande as any).statut_dolce_italia || 'nouveau') === 'en_preparation' && (
                     <Button
                       onClick={() => changerStatut(commande.id, 'pret')}
                       className="flex-1 bg-green-600 hover:bg-green-700"
@@ -321,7 +333,7 @@ const PizzaioloDashboard = () => {
                       Terminé
                     </Button>
                   )}
-                  {commande.statut === 'pret' && (
+                  {((commande as any).statut_dolce_italia || 'nouveau') === 'pret' && (
                     <div className="flex-1 text-center py-2">
                       <Badge variant="default" className="bg-green-600">
                         <CheckCircle className="h-3 w-3 mr-1" />

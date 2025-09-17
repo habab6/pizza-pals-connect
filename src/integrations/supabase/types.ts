@@ -99,6 +99,10 @@ export type Database = {
           numero_commande: string
           pizzaiolo_id: string | null
           statut: Database["public"]["Enums"]["order_status"]
+          statut_961_lsf: Database["public"]["Enums"]["order_status"] | null
+          statut_dolce_italia:
+            | Database["public"]["Enums"]["order_status"]
+            | null
           total: number
           type_commande: Database["public"]["Enums"]["order_type"]
           updated_at: string
@@ -115,6 +119,10 @@ export type Database = {
           numero_commande: string
           pizzaiolo_id?: string | null
           statut?: Database["public"]["Enums"]["order_status"]
+          statut_961_lsf?: Database["public"]["Enums"]["order_status"] | null
+          statut_dolce_italia?:
+            | Database["public"]["Enums"]["order_status"]
+            | null
           total: number
           type_commande: Database["public"]["Enums"]["order_type"]
           updated_at?: string
@@ -131,6 +139,10 @@ export type Database = {
           numero_commande?: string
           pizzaiolo_id?: string | null
           statut?: Database["public"]["Enums"]["order_status"]
+          statut_961_lsf?: Database["public"]["Enums"]["order_status"] | null
+          statut_dolce_italia?:
+            | Database["public"]["Enums"]["order_status"]
+            | null
           total?: number
           type_commande?: Database["public"]["Enums"]["order_type"]
           updated_at?: string
@@ -276,6 +288,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_global_status: {
+        Args: {
+          p_has_dolce: boolean
+          p_has_lsf: boolean
+          p_statut_dolce: Database["public"]["Enums"]["order_status"]
+          p_statut_lsf: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: Database["public"]["Enums"]["order_status"]
+      }
       determine_commerce_principal: {
         Args: { commande_uuid: string }
         Returns: Database["public"]["Enums"]["commerce_type"]
