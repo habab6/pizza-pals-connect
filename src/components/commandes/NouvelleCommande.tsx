@@ -384,67 +384,105 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
               {/* Liste des produits */}
               <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
-                  <div className="p-4 space-y-3">
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {produits
+                        .filter(p => p.categorie === categorieActive)
+                        .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map(produit => {
+                          const quantiteInPanier = getQuantiteInPanier(produit.id);
+                          const isSelected = quantiteInPanier > 0;
+                          
+                          return (
+                            <Card 
+                              key={produit.id} 
+                              className={`transition-all hover:shadow-md cursor-pointer ${
+                                isSelected ? 'ring-2 ring-primary/20 bg-primary/5' : 'hover:bg-muted/50'
+                              }`}
+                            >
+                              <CardContent className="p-3">
+                                <div className="space-y-3">
+                                  {/* Info produit */}
+                                  <div className="text-center">
+                                    <h4 className="font-medium text-sm leading-tight line-clamp-2 mb-2">
+                                      {formatProduitNom(produit.nom, produit.categorie)}
+                                    </h4>
+                                    <p className="text-primary font-bold text-lg">{produit.prix.toFixed(2)}€</p>
+                                  </div>
+                                  
+                                  {/* Contrôles quantité */}
+                                  {isSelected ? (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-center space-x-2">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            modifierQuantite(produit.id, -1);
+                                          }}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </Button>
+                                        <Badge variant="secondary" className="min-w-[2.5rem] justify-center font-bold">
+                                          {quantiteInPanier}
+                                        </Badge>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            modifierQuantite(produit.id, 1);
+                                          }}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          ajouterAuPanier(produit);
+                                        }}
+                                        size="sm"
+                                        className="w-full h-8"
+                                        variant="outline"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Ajouter
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        ajouterAuPanier(produit);
+                                      }}
+                                      size="sm"
+                                      className="w-full"
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Ajouter
+                                    </Button>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                    </div>
+                    
+                    {/* Message si aucun produit */}
                     {produits
                       .filter(p => p.categorie === categorieActive)
                       .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map(produit => {
-                        const quantiteInPanier = getQuantiteInPanier(produit.id);
-                        const isSelected = quantiteInPanier > 0;
-                        
-                        return (
-                          <Card 
-                            key={produit.id} 
-                            className={`transition-all hover:shadow-md ${
-                              isSelected ? 'ring-2 ring-primary/20 bg-primary/5' : ''
-                            }`}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm mb-1 truncate">{formatProduitNom(produit.nom, produit.categorie)}</h4>
-                                  <p className="text-primary font-bold">{produit.prix.toFixed(2)}€</p>
-                                </div>
-                                
-                                <div className="flex items-center space-x-3 ml-4">
-                                  {isSelected && (
-                                    <div className="flex items-center space-x-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => modifierQuantite(produit.id, -1)}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <Minus className="h-3 w-3" />
-                                      </Button>
-                                      <Badge variant="secondary" className="min-w-[2.5rem] justify-center font-bold">
-                                        {quantiteInPanier}
-                                      </Badge>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => modifierQuantite(produit.id, 1)}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        <Plus className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                  
-                                  <Button
-                                    onClick={() => ajouterAuPanier(produit)}
-                                    size="sm"
-                                    className={isSelected ? 'bg-primary/80' : ''}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    {isSelected ? 'Ajouter' : 'Ajouter'}
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                      .length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                          <Search className="h-8 w-8 mb-2" />
+                          <p className="text-sm">Aucun produit trouvé</p>
+                        </div>
+                      )}
                   </div>
                 </ScrollArea>
               </div>
