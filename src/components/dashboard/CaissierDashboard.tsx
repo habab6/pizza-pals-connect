@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard } from "lucide-react";
+import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
@@ -194,6 +194,68 @@ const CaissierDashboard = () => {
     return methods[method as keyof typeof methods] || method;
   };
 
+  const viderCommandes = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer toutes les commandes ? Cette action est irréversible.')) {
+      return;
+    }
+
+    try {
+      // Supprimer d'abord les items de commande puis les commandes
+      const { error: itemsError } = await supabase
+        .from('commande_items')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (itemsError) throw itemsError;
+
+      const { error: commandesError } = await supabase
+        .from('commandes')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (commandesError) throw commandesError;
+
+      toast({
+        title: "Commandes supprimées",
+        description: "Toutes les commandes ont été supprimées avec succès"
+      });
+
+      fetchCommandes();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de supprimer les commandes"
+      });
+    }
+  };
+
+  const viderClients = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer tous les clients ? Cette action est irréversible.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (error) throw error;
+
+      toast({
+        title: "Clients supprimés",
+        description: "Tous les clients ont été supprimés avec succès"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de supprimer les clients"
+      });
+    }
+  };
+
   const voirDetails = (commandeId: string) => {
     setSelectedCommandeId(commandeId);
     setShowDetailsModal(true);
@@ -211,7 +273,7 @@ const CaissierDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">Tableau de bord - Caissier</h2>
-        <div className="flex space-x-2 sm:space-x-3">
+        <div className="flex flex-wrap gap-2">
           <HistoriqueCommandes />
           
           <Dialog open={showGestionArticles} onOpenChange={setShowGestionArticles}>
@@ -225,6 +287,24 @@ const CaissierDashboard = () => {
               <GestionArticles onClose={() => setShowGestionArticles(false)} />
             </DialogContent>
           </Dialog>
+
+          <Button 
+            onClick={viderCommandes}
+            variant="outline" 
+            className="flex items-center space-x-2 border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden md:inline">Vider commandes</span>
+          </Button>
+
+          <Button 
+            onClick={viderClients}
+            variant="outline" 
+            className="flex items-center space-x-2 border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <Database className="h-4 w-4" />
+            <span className="hidden md:inline">Vider clients</span>
+          </Button>
 
           <Dialog open={showNouvelleCommande} onOpenChange={(open) => {
             setShowNouvelleCommande(open);
