@@ -51,6 +51,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentView, setCurrentView] = useState<'menu' | 'client'>('menu');
   const [categorieActive, setCategorieActive] = useState<string>('pizzas');
+  const [commerceActive, setCommerceActive] = useState<'dolce_italia' | '961_lsf'>('dolce_italia');
   
   const { toast } = useToast();
 
@@ -281,6 +282,32 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
+  const commerces = {
+    dolce_italia: {
+      name: 'Dolce Italia',
+      icon: '🍕',
+      color: 'bg-red-50 text-red-700 border-red-200',
+      categories: [
+        { key: 'pizzas', label: 'Pizzas', icon: '🍕', color: 'bg-red-50 text-red-700 border-red-200' },
+        { key: 'pates', label: 'Pâtes', icon: '🍝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+        { key: 'desserts', label: 'Desserts', icon: '🍰', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+        { key: 'boissons_dolce', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+      ]
+    },
+    '961_lsf': {
+      name: '961 LSF',
+      icon: '🥪',
+      color: 'bg-green-50 text-green-700 border-green-200',
+      categories: [
+        { key: 'entrees', label: 'Entrées', icon: '🥗', color: 'bg-green-50 text-green-700 border-green-200' },
+        { key: 'sandwiches', label: 'Sandwiches', icon: '🥪', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+        { key: 'bowls_salades', label: 'Bowls & Salades', icon: '🥙', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+        { key: 'frites', label: 'Frites', icon: '🍟', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+        { key: 'boissons_lsf', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+      ]
+    }
+  };
+
   const categories = [
     // Dolce Italia
     { key: 'pizzas', label: 'Pizzas', icon: '🍕', color: 'bg-red-50 text-red-700 border-red-200' },
@@ -296,6 +323,21 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
   const canProceedToClient = () => {
     return panier.length > 0;
+  };
+
+  const getFilteredProducts = () => {
+    let filteredCategory = categorieActive;
+    
+    // Gestion spéciale des boissons par commerce
+    if (categorieActive === 'boissons_dolce') {
+      filteredCategory = 'boissons';
+    } else if (categorieActive === 'boissons_lsf') {
+      filteredCategory = 'boissons';
+    }
+    
+    return produits
+      .filter(p => p.categorie === filteredCategory)
+      .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
   };
 
   const canValidateOrder = () => {
@@ -378,9 +420,36 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                   </div>
                 </div>
 
-                {/* Catégories */}
+                {/* Navigation des commerces */}
+                <div className="flex justify-center space-x-4 mb-3">
+                  <Button
+                    variant={commerceActive === 'dolce_italia' ? "default" : "outline"}
+                    onClick={() => {
+                      setCommerceActive('dolce_italia');
+                      setCategorieActive('pizzas');
+                    }}
+                    className="flex items-center space-x-2 px-6"
+                  >
+                    <span>🍕</span>
+                    <span>Dolce Italia</span>
+                  </Button>
+                  
+                  <Button
+                    variant={commerceActive === '961_lsf' ? "default" : "outline"}
+                    onClick={() => {
+                      setCommerceActive('961_lsf');
+                      setCategorieActive('entrees');
+                    }}
+                    className="flex items-center space-x-2 px-6"
+                  >
+                    <span>🥪</span>
+                    <span>961 LSF</span>
+                  </Button>
+                </div>
+
+                {/* Catégories du commerce sélectionné */}
                 <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {categories.map(cat => (
+                  {commerces[commerceActive].categories.map(cat => (
                     <Button
                       key={cat.key}
                       variant={categorieActive === cat.key ? "default" : "outline"}
@@ -399,10 +468,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
               <div className="flex-1 overflow-hidden">
                 <div className="p-4">
                   <div className="space-y-3 max-h-[480px] overflow-y-auto">
-                    {produits
-                      .filter(p => p.categorie === categorieActive)
-                      .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map(produit => {
+                     {getFilteredProducts()
+                       .map(produit => {
                         const quantiteInPanier = getQuantiteInPanier(produit.id);
                         const isSelected = quantiteInPanier > 0;
                         
