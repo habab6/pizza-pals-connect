@@ -127,7 +127,7 @@ const PizzaioloDashboard = ({ userProfile }: PizzaioloDashboardProps) => {
         .from('commandes')
         .update({ 
           statut: 'en_preparation',
-          pizzaiolo_id: userProfile.id
+          pizzaiolo_id: userProfile?.id
         })
         .eq('id', commandeId);
 

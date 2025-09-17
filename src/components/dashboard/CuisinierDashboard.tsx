@@ -117,7 +117,7 @@ const CuisinierDashboard = ({ userProfile }: CuisinierDashboardProps) => {
         .from('commandes')
         .update({ 
           statut: 'en_preparation',
-          pizzaiolo_id: userProfile.id  // Utiliser pizzaiolo_id pour le moment
+          pizzaiolo_id: userProfile?.id  // Utiliser pizzaiolo_id pour le moment
         })
         .eq('id', commandeId);
 
