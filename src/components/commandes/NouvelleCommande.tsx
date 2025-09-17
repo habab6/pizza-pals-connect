@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
   prix: number;
 }
 
@@ -264,10 +264,16 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const categories = [
+    // Dolce Italia
     { key: 'pizzas', label: 'Pizzas', icon: '🍕', color: 'bg-red-50 text-red-700 border-red-200' },
     { key: 'pates', label: 'Pâtes', icon: '🍝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
     { key: 'desserts', label: 'Desserts', icon: '🍰', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-    { key: 'boissons', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+    { key: 'boissons', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+    // 961 LSF
+    { key: 'entrees', label: 'Entrées', icon: '🥗', color: 'bg-green-50 text-green-700 border-green-200' },
+    { key: 'sandwiches', label: 'Sandwiches', icon: '🥪', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+    { key: 'bowls_salades', label: 'Bowls & Salades', icon: '🥙', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+    { key: 'frites', label: 'Frites', icon: '🍟', color: 'bg-amber-50 text-amber-700 border-amber-200' }
   ];
 
   const canProceedToClient = () => {

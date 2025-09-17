@@ -32,6 +32,12 @@ const Index = () => {
             Pizzaiolo
           </Button>
           <Button 
+            onClick={() => handleRoleSelection('cuisinier')}
+            className="w-full px-8 py-3 text-lg bg-orange-600 hover:bg-orange-700"
+          >
+            Cuisinier 961 LSF
+          </Button>
+          <Button 
             onClick={() => handleRoleSelection('livreur')}
             className="w-full px-8 py-3 text-lg"
           >

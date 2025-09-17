@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
   prix: number;
   disponible: boolean;
   created_at: string;
@@ -33,7 +33,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
-    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons',
+    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches',
     prix: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,7 +115,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .from('produits')
           .update({
             nom: formData.nom.trim(),
-            categorie: formData.categorie,
+            categorie: formData.categorie as any,
             prix: prix
           })
           .eq('id', editingProduct.id);
@@ -132,7 +132,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .from('produits')
           .insert({
             nom: formData.nom.trim(),
-            categorie: formData.categorie,
+            categorie: formData.categorie as any,
             prix: prix,
             disponible: true
           });
@@ -218,10 +218,16 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   };
 
   const categories = [
-    { key: 'pizzas', label: 'Pizzas', icon: '🍕' },
-    { key: 'pates', label: 'Pâtes', icon: '🍝' },
-    { key: 'desserts', label: 'Desserts', icon: '🍰' },
-    { key: 'boissons', label: 'Boissons', icon: '🥤' }
+    // Dolce Italia
+    { key: 'pizzas', label: 'Pizzas', icon: '🍕', commerce: 'dolce_italia' },
+    { key: 'pates', label: 'Pâtes', icon: '🍝', commerce: 'dolce_italia' },
+    { key: 'desserts', label: 'Desserts', icon: '🍰', commerce: 'dolce_italia' },
+    { key: 'boissons', label: 'Boissons', icon: '🥤', commerce: 'both' },
+    // 961 LSF
+    { key: 'entrees', label: 'Entrées', icon: '🥗', commerce: '961_lsf' },
+    { key: 'sandwiches', label: 'Sandwiches', icon: '🥪', commerce: '961_lsf' },
+    { key: 'bowls_salades', label: 'Bowls & Salades', icon: '🥙', commerce: '961_lsf' },
+    { key: 'frites', label: 'Frites', icon: '🍟', commerce: '961_lsf' }
   ];
 
   const getCategoryInfo = (categorie: string) => {

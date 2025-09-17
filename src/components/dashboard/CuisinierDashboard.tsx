@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, ChefHat, CheckCircle } from "lucide-react";
+import { Clock, ChefHat, CheckCircle, Sandwich } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { formatProduitNom } from "@/utils/formatters";
@@ -17,6 +17,7 @@ interface Commande {
   total: number;
   notes?: string;
   created_at: string;
+  commerce_principal?: 'dolce_italia' | '961_lsf';
   clients?: {
     nom: string;
   };
@@ -25,11 +26,12 @@ interface Commande {
     produits: {
       nom: string;
       categorie: string;
+      commerce?: 'dolce_italia' | '961_lsf';
     };
   }>;
 }
 
-const PizzaioloDashboard = () => {
+const CuisinierDashboard = () => {
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
@@ -45,7 +47,7 @@ const PizzaioloDashboard = () => {
           clients (nom),
           commande_items (
             quantite,
-            produits (nom, categorie)
+            produits (nom, categorie, commerce)
           )
         `)
         .in('statut', ['nouveau', 'en_preparation', 'pret'])
@@ -54,14 +56,14 @@ const PizzaioloDashboard = () => {
 
       if (error) throw error;
       
-      // Filtrer les commandes qui contiennent des articles Dolce Italia (par catégorie)
-      const commandesDolce = (data || []).filter((commande: any) => 
+      // Filtrer les commandes qui contiennent des articles 961 LSF (par catégorie)
+      const commandesLSF = (data || []).filter((commande: any) => 
         commande.commande_items?.some((item: any) => 
-          ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+          ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
         )
       );
-      
-      setCommandes(commandesDolce as any);
+
+      setCommandes(commandesLSF as any);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -157,10 +159,28 @@ const PizzaioloDashboard = () => {
     return types[type as keyof typeof types] || type;
   };
 
+  // Vérifier si une commande est mixte (contient des articles des deux commerces)
+  const isCommandeMixte = (commande: Commande) => {
+    const hasLSF = commande.commande_items.some(item => 
+      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+    );
+    const hasDolce = commande.commande_items.some(item => 
+      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+    );
+    return hasLSF && hasDolce;
+  };
+
+  // Filtrer les articles 961 LSF de la commande
+  const getItemsLSF = (commande: Commande) => {
+    return commande.commande_items.filter(item => 
+      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
       </div>
     );
   }
@@ -168,8 +188,8 @@ const PizzaioloDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
-        <ChefHat className="h-8 w-8 text-red-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Pizzaiolo</h2>
+        <Sandwich className="h-8 w-8 text-orange-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Tableau de bord - Cuisinier 961 LSF</h2>
       </div>
 
       {/* Stats rapides */}
@@ -179,11 +199,11 @@ const PizzaioloDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouvelles commandes</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-bold text-orange-600">
                   {commandes.filter(c => c.statut === 'nouveau').length}
                 </p>
               </div>
-              <Clock className="h-8 w-8 text-red-600" />
+              <Clock className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
@@ -193,11 +213,11 @@ const PizzaioloDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-2xl font-bold text-blue-600">
                   {commandes.filter(c => c.statut === 'en_preparation').length}
                 </p>
               </div>
-              <ChefHat className="h-8 w-8 text-orange-600" />
+              <ChefHat className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -221,89 +241,99 @@ const PizzaioloDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {commandes.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <ChefHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <Sandwich className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">Aucune commande en attente</p>
           </div>
         ) : (
-          commandes.map((commande) => (
-            <Card key={commande.id} className="border-l-4 border-l-red-500">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {getTypeCommande(commande.type_commande)}
-                      {commande.clients && ` • ${commande.clients.nom}`}
-                    </p>
+          commandes.map((commande) => {
+            const itemsLSF = getItemsLSF(commande);
+            const isMixte = isCommandeMixte(commande);
+            
+            return (
+              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-orange-500'}`}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{commande.numero_commande}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {getTypeCommande(commande.type_commande)}
+                        {commande.clients && ` • ${commande.clients.nom}`}
+                      </p>
+                      {isMixte && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          🍕🥪 Commande mixte
+                        </Badge>
+                      )}
+                    </div>
+                    {getStatusBadge(commande.statut)}
                   </div>
-                  {getStatusBadge(commande.statut)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Items de la commande */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Articles:</h4>
-                  <div className="space-y-1">
-                     {commande.commande_items.map((item, index) => (
-                       <div key={index} className="flex justify-between items-center text-sm">
-                         <div className="flex-1">
-                           <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Items 961 LSF */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Articles 961 LSF:</h4>
+                    <div className="space-y-1">
+                       {itemsLSF.map((item, index) => (
+                         <div key={index} className="flex justify-between items-center text-sm">
+                           <div className="flex-1">
+                             <span>{item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}</span>
+                           </div>
+                           <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                             {item.produits.categorie}
+                           </Badge>
                          </div>
-                         <Badge variant="outline" className="text-xs">
-                           {item.produits.categorie}
-                         </Badge>
-                       </div>
-                     ))}
+                       ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Notes */}
-                {commande.notes && (
-                  <div>
-                    <h4 className="font-medium text-sm mb-1">Notes:</h4>
-                    <p className="text-sm text-gray-600 bg-yellow-50 p-2 rounded">
-                      {commande.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Temps */}
-                <p className="text-xs text-gray-500">
-                  Commande passée: {new Date(commande.created_at).toLocaleString('fr-FR')}
-                </p>
-
-                {/* Actions */}
-                <div className="flex space-x-2 pt-2">
-                  {commande.statut === 'nouveau' && (
-                    <Button
-                      onClick={() => changerStatut(commande.id, 'en_preparation')}
-                      className="flex-1 bg-orange-600 hover:bg-orange-700"
-                      size="sm"
-                    >
-                      Commencer
-                    </Button>
-                  )}
-                  {commande.statut === 'en_preparation' && (
-                    <Button
-                      onClick={() => changerStatut(commande.id, 'pret')}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                      size="sm"
-                    >
-                      Terminé
-                    </Button>
-                  )}
-                  {commande.statut === 'pret' && (
-                    <div className="flex-1 text-center py-2">
-                      <Badge variant="default" className="bg-green-600">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Prêt pour récupération
-                      </Badge>
+                  {/* Notes */}
+                  {commande.notes && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-1">Notes:</h4>
+                      <p className="text-sm text-gray-600 bg-yellow-50 p-2 rounded">
+                        {commande.notes}
+                      </p>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+
+                  {/* Temps */}
+                  <p className="text-xs text-gray-500">
+                    Commande passée: {new Date(commande.created_at).toLocaleString('fr-FR')}
+                  </p>
+
+                  {/* Actions */}
+                  <div className="flex space-x-2 pt-2">
+                    {commande.statut === 'nouveau' && (
+                      <Button
+                        onClick={() => changerStatut(commande.id, 'en_preparation')}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        size="sm"
+                      >
+                        Commencer
+                      </Button>
+                    )}
+                    {commande.statut === 'en_preparation' && (
+                      <Button
+                        onClick={() => changerStatut(commande.id, 'pret')}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        size="sm"
+                      >
+                        Terminé
+                      </Button>
+                    )}
+                    {commande.statut === 'pret' && (
+                      <div className="flex-1 text-center py-2">
+                        <Badge variant="default" className="bg-green-600">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Prêt pour récupération
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
@@ -320,7 +350,7 @@ const PizzaioloDashboard = () => {
             changerStatut(nouvelleCommande.id, 'en_preparation');
           }
         }}
-        title="Nouvelle commande reçue!"
+        title="Nouvelle commande 961 LSF reçue!"
         acceptButtonText="Commencer la préparation"
         acceptButtonIcon={ChefHat}
       />
@@ -328,4 +358,4 @@ const PizzaioloDashboard = () => {
   );
 };
 
-export default PizzaioloDashboard;
+export default CuisinierDashboard;

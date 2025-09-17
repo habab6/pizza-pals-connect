@@ -1,15 +1,16 @@
 import { useParams, useNavigate } from "react-router-dom";
 import CaissierDashboard from "@/components/dashboard/CaissierDashboard";
 import PizzaioloDashboard from "@/components/dashboard/PizzaioloDashboard";
+import CuisinierDashboard from "@/components/dashboard/CuisinierDashboard";
 import LivreurDashboard from "@/components/dashboard/LivreurDashboard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pizza } from "lucide-react";
+import { ArrowLeft, Pizza, Sandwich } from "lucide-react";
 
 const Dashboard = () => {
   const { role } = useParams<{ role: string }>();
   const navigate = useNavigate();
 
-  if (!role || !['caissier', 'pizzaiolo', 'livreur'].includes(role)) {
+  if (!role || !['caissier', 'pizzaiolo', 'cuisinier', 'livreur'].includes(role)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -27,6 +28,7 @@ const Dashboard = () => {
     switch (role) {
       case 'caissier': return 'Caissier';
       case 'pizzaiolo': return 'Pizzaiolo';
+      case 'cuisinier': return 'Cuisinier';
       case 'livreur': return 'Livreur';
       default: return role;
     }
@@ -39,11 +41,21 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                <Pizza className="h-5 w-5 text-red-600" />
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                role === 'cuisinier' ? 'bg-orange-100' : 'bg-red-100'
+              }`}>
+                {role === 'cuisinier' ? (
+                  <Sandwich className="h-5 w-5 text-orange-600" />
+                ) : (
+                  <Pizza className="h-5 w-5 text-red-600" />
+                )}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-red-800">Dolce Italia</h1>
+                <h1 className={`text-xl font-bold ${
+                  role === 'cuisinier' ? 'text-orange-800' : 'text-red-800'
+                }`}>
+                  {role === 'cuisinier' ? '961 LSF' : 'Dolce Italia'}
+                </h1>
                 <p className="text-sm text-gray-600">{getRoleName(role)}</p>
               </div>
             </div>
@@ -65,6 +77,7 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {role === 'caissier' && <CaissierDashboard />}
         {role === 'pizzaiolo' && <PizzaioloDashboard />}
+        {role === 'cuisinier' && <CuisinierDashboard />}
         {role === 'livreur' && <LivreurDashboard />}
       </main>
     </div>
