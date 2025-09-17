@@ -75,10 +75,10 @@ export const usePushNotifications = () => {
         applicationServerKey
       });
 
-      // Envoyer l'abonnement au serveur
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert({
+      // Envoyer l'abonnement au serveur via edge function
+      const { error } = await supabase.functions.invoke('manage-push-subscription', {
+        body: {
+          action: 'subscribe',
           endpoint: subscription.endpoint,
           keys: {
             p256dh: subscription.getKey('p256dh') ? 
@@ -86,11 +86,9 @@ export const usePushNotifications = () => {
             auth: subscription.getKey('auth') ? 
               arrayBufferToBase64(subscription.getKey('auth')!) : null
           },
-          poste_type: 'livreur',
-          is_active: true
-        }, {
-          onConflict: 'endpoint'
-        });
+          poste_type: 'livreur'
+        }
+      });
 
       if (error) {
         console.error('Erreur lors de l\'enregistrement de l\'abonnement:', error);
@@ -113,11 +111,13 @@ export const usePushNotifications = () => {
       if (subscription) {
         await subscription.unsubscribe();
         
-        // Supprimer l'abonnement du serveur
-        const { error } = await supabase
-          .from('push_subscriptions')
-          .update({ is_active: false })
-          .eq('endpoint', subscription.endpoint);
+        // Supprimer l'abonnement du serveur via edge function
+        const { error } = await supabase.functions.invoke('manage-push-subscription', {
+          body: {
+            action: 'unsubscribe',
+            endpoint: subscription.endpoint
+          }
+        });
 
         if (error) {
           console.error('Erreur lors de la suppression de l\'abonnement:', error);

@@ -310,6 +310,36 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          is_active: boolean
+          keys: Json
+          poste_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_active?: boolean
+          keys: Json
+          poste_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_active?: boolean
+          keys?: Json
+          poste_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

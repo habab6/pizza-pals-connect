@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { playNotificationSound, stopNotificationSound } from "@/utils/notificationSound";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import PushNotificationSetup from "@/components/pwa/PushNotificationSetup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -45,6 +47,7 @@ const LivreurDashboard = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [previousCommandesCount, setPreviousCommandesCount] = useState(0);
   const { toast } = useToast();
+  const { sendNotification } = usePushNotifications();
   
   // Pas besoin de profil livreur - une seule personne par rôle
 
@@ -90,8 +93,18 @@ const LivreurDashboard = () => {
       // Détecter les nouvelles livraisons disponibles et jouer le son
       const newCommandesCount = (commandesDisponibles || []).length;
       
-      if (newCommandesCount > previousCommandesCount) {
+      if (newCommandesCount > previousCommandesCount && newCommandesCount > 0) {
         playNotificationSound();
+        
+        // Envoyer une notification push
+        const nouvelleLivraison = commandesDisponibles?.[0];
+        if (nouvelleLivraison) {
+          sendNotification(
+            'Nouvelle livraison disponible!',
+            `Commande ${nouvelleLivraison.numero_commande} - ${nouvelleLivraison.clients.nom}`,
+            { commandeId: nouvelleLivraison.id }
+          );
+        }
       } else if (newCommandesCount === 0) {
         stopNotificationSound();
       }
@@ -271,6 +284,9 @@ const LivreurDashboard = () => {
         <Truck className="h-8 w-8 text-red-600" />
         <h2 className="text-2xl font-bold text-gray-900">Tableau de bord</h2>
       </div>
+
+      {/* Configuration des notifications push */}
+      <PushNotificationSetup />
 
       {/* Stats rapides */}
       <div className="grid grid-cols-1 gap-4">

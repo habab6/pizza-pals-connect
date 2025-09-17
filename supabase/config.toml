@@ -1,1 +1,14 @@
 project_id = "rllqnpopmacbyyhnhljc"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[functions.manage-push-subscription]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
