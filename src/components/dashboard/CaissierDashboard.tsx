@@ -3,14 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings } from "lucide-react";
+import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
 import HistoriqueCommandes from "./HistoriqueCommandes";
 import GestionArticles from "@/components/gestion/GestionArticles";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Commande {
   id: string;
@@ -33,6 +34,9 @@ const CaissierDashboard = () => {
   const [showGestionArticles, setShowGestionArticles] = useState(false);
   const [selectedCommandeId, setSelectedCommandeId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [commandeToServe, setCommandeToServe] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
 
   const fetchCommandes = async () => {
@@ -106,27 +110,57 @@ const CaissierDashboard = () => {
   };
 
   const marquerServie = async (commandeId: string) => {
+    setCommandeToServe(commandeId);
+    setShowPaymentModal(true);
+  };
+
+  const confirmerPaiement = async () => {
+    if (!commandeToServe || !selectedPaymentMethod) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner un mode de paiement"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ statut: 'termine' })
-        .eq('id', commandeId);
+        .update({ 
+          statut: 'termine',
+          mode_paiement: selectedPaymentMethod as any
+        })
+        .eq('id', commandeToServe);
 
       if (error) throw error;
 
       toast({
-        title: "Commande servie",
-        description: "La commande a été marquée comme servie"
+        title: "Commande clôturée",
+        description: `Commande marquée comme servie avec paiement ${getPaymentMethodLabel(selectedPaymentMethod)}`
       });
 
+      setShowPaymentModal(false);
+      setCommandeToServe(null);
+      setSelectedPaymentMethod("");
       fetchCommandes();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de marquer la commande comme servie"
+        description: "Impossible de clôturer la commande"
       });
     }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const methods = {
+      bancontact: "Bancontact",
+      visa: "Visa", 
+      mastercard: "Mastercard",
+      cash: "Espèces"
+    };
+    return methods[method as keyof typeof methods] || method;
   };
 
   const voirDetails = (commandeId: string) => {
@@ -304,6 +338,73 @@ const CaissierDashboard = () => {
           setSelectedCommandeId(null);
         }}
       />
+
+      {/* Modal de sélection du mode de paiement */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <CreditCard className="h-5 w-5" />
+              <span>Mode de paiement</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Sélectionnez le mode de paiement pour clôturer cette commande :
+            </p>
+            <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir un mode de paiement" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bancontact">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Bancontact</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="visa">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Visa</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="mastercard">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Mastercard</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="cash">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">💵</span>
+                    <span>Espèces</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex space-x-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setCommandeToServe(null);
+                  setSelectedPaymentMethod("");
+                }}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={confirmerPaiement}
+                disabled={!selectedPaymentMethod}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Confirmer le paiement
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

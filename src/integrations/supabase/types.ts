@@ -93,6 +93,7 @@ export type Database = {
           created_at: string
           id: string
           livreur_id: string | null
+          mode_paiement: Database["public"]["Enums"]["payment_method"] | null
           notes: string | null
           numero_commande: string
           pizzaiolo_id: string | null
@@ -107,6 +108,7 @@ export type Database = {
           created_at?: string
           id?: string
           livreur_id?: string | null
+          mode_paiement?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
           numero_commande: string
           pizzaiolo_id?: string | null
@@ -121,6 +123,7 @@ export type Database = {
           created_at?: string
           id?: string
           livreur_id?: string | null
+          mode_paiement?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
           numero_commande?: string
           pizzaiolo_id?: string | null
@@ -281,6 +284,7 @@ export type Database = {
         | "livre"
         | "termine"
       order_type: "sur_place" | "a_emporter" | "livraison"
+      payment_method: "bancontact" | "visa" | "mastercard" | "cash"
       product_category: "pizzas" | "pates" | "desserts" | "boissons"
       user_role: "caissier" | "pizzaiolo" | "livreur"
     }
@@ -419,6 +423,7 @@ export const Constants = {
         "termine",
       ],
       order_type: ["sur_place", "a_emporter", "livraison"],
+      payment_method: ["bancontact", "visa", "mastercard", "cash"],
       product_category: ["pizzas", "pates", "desserts", "boissons"],
       user_role: ["caissier", "pizzaiolo", "livreur"],
     },

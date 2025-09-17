@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Phone, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Truck, Phone, MapPin, Clock, CheckCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Commande {
   id: string;
@@ -37,6 +39,9 @@ const LivreurDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [nouvelleLivraison, setNouvelleLivraison] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [commandeToDeliver, setCommandeToDeliver] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
   
   // Profil du livreur (si connecté)
@@ -174,27 +179,57 @@ const LivreurDashboard = () => {
   };
 
   const marquerLivre = async (commandeId: string) => {
+    setCommandeToDeliver(commandeId);
+    setShowPaymentModal(true);
+  };
+
+  const confirmerPaiementLivraison = async () => {
+    if (!commandeToDeliver || !selectedPaymentMethod) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner un mode de paiement"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('commandes')
-        .update({ statut: 'termine' })
-        .eq('id', commandeId);
+        .update({ 
+          statut: 'termine',
+          mode_paiement: selectedPaymentMethod as any
+        })
+        .eq('id', commandeToDeliver);
 
       if (error) throw error;
 
       toast({
         title: "Livraison terminée",
-        description: "La commande a été marquée comme livrée"
+        description: `Commande marquée comme livrée avec paiement ${getPaymentMethodLabel(selectedPaymentMethod)}`
       });
 
+      setShowPaymentModal(false);
+      setCommandeToDeliver(null);
+      setSelectedPaymentMethod("");
       fetchCommandes();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de marquer comme livré"
+        description: "Impossible de terminer la livraison"
       });
     }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const methods = {
+      bancontact: "Bancontact",
+      visa: "Visa", 
+      mastercard: "Mastercard",
+      cash: "Espèces"
+    };
+    return methods[method as keyof typeof methods] || method;
   };
 
   const fetchCommandeComplete = async (commandeId: string) => {
@@ -449,6 +484,73 @@ const LivreurDashboard = () => {
         acceptButtonText="Accepter cette livraison"
         acceptButtonIcon={Truck}
       />
+
+      {/* Modal de sélection du mode de paiement */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <CreditCard className="h-5 w-5" />
+              <span>Mode de paiement</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Sélectionnez le mode de paiement reçu du client :
+            </p>
+            <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir un mode de paiement" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bancontact">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Bancontact</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="visa">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Visa</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="mastercard">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Mastercard</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="cash">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">💵</span>
+                    <span>Espèces</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex space-x-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setCommandeToDeliver(null);
+                  setSelectedPaymentMethod("");
+                }}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={confirmerPaiementLivraison}
+                disabled={!selectedPaymentMethod}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Confirmer la livraison
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

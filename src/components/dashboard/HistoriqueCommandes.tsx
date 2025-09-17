@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, History, Calendar, Search } from "lucide-react";
+import { Eye, History, Calendar, Search, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -18,6 +18,7 @@ interface Commande {
   statut: 'nouveau' | 'en_preparation' | 'pret' | 'en_livraison' | 'livre' | 'termine';
   total: number;
   created_at: string;
+  mode_paiement?: string;
   clients?: {
     nom: string;
     telephone: string;
@@ -94,6 +95,16 @@ const HistoriqueCommandes = () => {
       livraison: "Livraison"
     };
     return types[type as keyof typeof types] || type;
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const methods = {
+      bancontact: "Bancontact",
+      visa: "Visa", 
+      mastercard: "Mastercard",
+      cash: "Espèces"
+    };
+    return methods[method as keyof typeof methods] || method;
   };
 
   const voirDetails = (commandeId: string) => {
@@ -215,6 +226,12 @@ const HistoriqueCommandes = () => {
                           <span>Total: {commande.total.toFixed(2)}€</span>
                           {commande.clients && (
                             <span>Client: {commande.clients.nom}</span>
+                          )}
+                          {commande.mode_paiement && (
+                            <span className="flex items-center space-x-1">
+                              <CreditCard className="h-3 w-3" />
+                              <span>{getPaymentMethodLabel(commande.mode_paiement)}</span>
+                            </span>
                           )}
                           <span>{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
                         </div>
