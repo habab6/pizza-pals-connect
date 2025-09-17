@@ -9,7 +9,6 @@ export interface PosteSession {
 }
 
 const MASTER_PASSWORD = 'DI961LSF';
-const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 heures en millisecondes
 
 export const usePosteAuth = () => {
   const [currentSession, setCurrentSession] = useState<PosteSession | null>(null);
@@ -21,15 +20,7 @@ export const usePosteAuth = () => {
     if (savedSession) {
       try {
         const session: PosteSession = JSON.parse(savedSession);
-        const now = Date.now();
-        
-        // Vérifier si la session n'est pas expirée
-        if (now - session.authenticatedAt < SESSION_DURATION) {
-          setCurrentSession(session);
-        } else {
-          // Session expirée, la supprimer
-          localStorage.removeItem('posteSession');
-        }
+        setCurrentSession(session);
       } catch (error) {
         localStorage.removeItem('posteSession');
       } finally {
@@ -38,6 +29,17 @@ export const usePosteAuth = () => {
     } else {
       setInitialized(true);
     }
+
+    // Nettoyer la session à la fermeture de la page
+    const handleBeforeUnload = () => {
+      localStorage.removeItem('posteSession');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   const authenticatePoste = async (posteId: string, password: string): Promise<boolean> => {
@@ -103,14 +105,6 @@ export const usePosteAuth = () => {
   const isAuthenticated = (posteId?: string): boolean => {
     if (!currentSession) return false;
     
-    const now = Date.now();
-    const sessionValid = now - currentSession.authenticatedAt < SESSION_DURATION;
-    
-    if (!sessionValid) {
-      logout();
-      return false;
-    }
-
     return posteId ? currentSession.posteId === posteId : true;
   };
 
