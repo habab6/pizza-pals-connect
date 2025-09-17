@@ -67,7 +67,7 @@ export const usePushNotifications = () => {
       
       // Clé publique VAPID (configurée côté serveur)
       const applicationServerKey = urlBase64ToUint8Array(
-        'BH8Z9fCx_kkOQRLDbz_yQXjdGpZKz8N_Prr1FhpvN8nQutjXa7LU_xpJ-0TKQoGvmN2iP5oXxRtUaOCwQJ7tVck'
+        'BFZQsKeuEglGrBceuDdXNQRxXH4rIrQvUU8anV4MFWnL8JKtN8xysKF-aGvLRh_9_ZD-8VHvaHOEfJ6WYmibFDs'
       );
 
       const subscription = await registration.pushManager.subscribe({
