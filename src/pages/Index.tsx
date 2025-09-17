@@ -1,17 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Receipt, Pizza, Sandwich, Truck, Lock } from "lucide-react";
+import { Receipt, Pizza, Sandwich, Truck, Lock, LogOut } from "lucide-react";
 import { PosteLoginModal } from "@/components/auth/PosteLoginModal";
 import { usePosteAuth } from "@/hooks/usePosteAuth";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { authenticatePoste, currentSession, logout } = usePosteAuth();
+  const { authenticatePoste, currentSession, logout, initialized, isAuthenticated } = usePosteAuth();
   
   const [selectedPoste, setSelectedPoste] = useState<{id: string, name: string} | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Redirection automatique si une session est déjà active
+  useEffect(() => {
+    if (initialized && currentSession && isAuthenticated(currentSession.posteId)) {
+      console.log('Session active détectée, redirection vers:', currentSession.posteId);
+      navigate(`/dashboard/${currentSession.posteId}`);
+    }
+  }, [initialized, currentSession, isAuthenticated, navigate]);
 
   const handleRoleSelection = (roleId: string, roleName: string) => {
     setSelectedPoste({ id: roleId, name: roleName });
@@ -95,6 +103,36 @@ const Index = () => {
           <p className="text-xl text-gray-600">
             Sélectionnez votre espace de travail
           </p>
+          
+          {/* Message si session active mais sur l'accueil */}
+          {currentSession && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg inline-block">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="flex items-center space-x-2 text-blue-700">
+                  <Lock className="h-4 w-4" />
+                  <span className="font-medium">Session active: {currentSession.posteName}</span>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => navigate(`/dashboard/${currentSession.posteId}`)}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Reprendre
+                  </Button>
+                  <Button
+                    onClick={handleLogout}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <LogOut className="h-3 w-3 mr-1" />
+                    Changer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Role Cards Grid */}
