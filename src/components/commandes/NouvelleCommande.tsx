@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
-import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone, MessageSquare, ChevronRight, Edit3 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Produit {
   id: string;
@@ -23,6 +23,7 @@ interface Produit {
 interface CartItem {
   produit: Produit;
   quantite: number;
+  notes?: string;
 }
 
 interface Client {
@@ -47,9 +48,11 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   });
   const [clientExistant, setClientExistant] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notesGenerales, setNotesGenerales] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'commande' | 'client' | 'validation'>('commande');
+  const [currentView, setCurrentView] = useState<'menu' | 'client'>('menu');
+  const [categorieActive, setCategorieActive] = useState<string>('pizzas');
+  const [editingItemNotes, setEditingItemNotes] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -116,7 +119,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             : item
         );
       }
-      return [...prev, { produit, quantite: 1 }];
+      return [...prev, { produit, quantite: 1, notes: '' }];
     });
   };
 
@@ -131,6 +134,14 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         }
         return item;
       }).filter(Boolean) as CartItem[]
+    );
+  };
+
+  const modifierNotesItem = (produitId: string, notes: string) => {
+    setPanier(prev =>
+      prev.map(item =>
+        item.produit.id === produitId ? { ...item, notes } : item
+      )
     );
   };
 
@@ -223,7 +234,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           client_id: clientId,
           caissier_id: null,
           total: calculerTotal(),
-          notes: notes.trim() || null,
+          notes: notesGenerales.trim() || null,
           numero_commande: `CMD${Date.now()}`
         })
         .select()
@@ -236,7 +247,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         produit_id: item.produit.id,
         quantite: item.quantite,
         prix_unitaire: item.produit.prix,
-        remarque: null
+        remarque: item.notes?.trim() || null
       }));
 
       const { error: itemsError } = await supabase
@@ -263,77 +274,82 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const categories = [
-    { key: 'pizzas', label: 'Pizzas', icon: '🍕' },
-    { key: 'pates', label: 'Pâtes', icon: '🍝' },
-    { key: 'desserts', label: 'Desserts', icon: '🍰' },
-    { key: 'boissons', label: 'Boissons', icon: '🥤' }
+    { key: 'pizzas', label: 'Pizzas', icon: '🍕', color: 'bg-red-50 text-red-700 border-red-200' },
+    { key: 'pates', label: 'Pâtes', icon: '🍝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+    { key: 'desserts', label: 'Desserts', icon: '🍰', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+    { key: 'boissons', label: 'Boissons', icon: '🥤', color: 'bg-blue-50 text-blue-700 border-blue-200' }
   ];
 
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case 'commande': return 'Choisir les produits';
-      case 'client': return 'Informations client';
-      case 'validation': return 'Validation de la commande';
-      default: return 'Nouvelle commande';
+  const canProceedToClient = () => {
+    return panier.length > 0;
+  };
+
+  const canValidateOrder = () => {
+    if (!clientInfo.nom.trim()) return false;
+    if (typeCommande === 'livraison') {
+      return clientInfo.telephone.trim() && clientInfo.adresse.trim();
     }
+    return true;
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header avec progression */}
-      <div className="flex-shrink-0 border-b bg-background px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">{getStepTitle()}</h2>
+    <div className="h-full flex flex-col bg-background">
+      {/* Header fixe */}
+      <div className="flex-shrink-0 border-b bg-background">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-3">
+            <h2 className="text-xl font-bold">Nouvelle commande</h2>
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              {currentView === 'menu' ? 'Menu' : 'Client'}
+            </Badge>
+          </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
-        
-        {/* Progress steps */}
-        <div className="flex items-center space-x-2 text-sm">
-          <div className={`flex items-center space-x-1 ${currentStep === 'commande' ? 'text-primary' : panier.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${currentStep === 'commande' ? 'bg-primary text-primary-foreground' : panier.length > 0 ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}>
-              {panier.length > 0 && currentStep !== 'commande' ? <Check className="h-3 w-3" /> : '1'}
-            </div>
-            <span>Produits</span>
-          </div>
-          
-          <div className="h-px bg-border flex-1" />
-          
-          <div className={`flex items-center space-x-1 ${currentStep === 'client' ? 'text-primary' : currentStep === 'validation' ? 'text-green-600' : 'text-muted-foreground'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${currentStep === 'client' ? 'bg-primary text-primary-foreground' : currentStep === 'validation' ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}>
-              {currentStep === 'validation' ? <Check className="h-3 w-3" /> : '2'}
-            </div>
-            <span>Client</span>
-          </div>
-          
-          <div className="h-px bg-border flex-1" />
-          
-          <div className={`flex items-center space-x-1 ${currentStep === 'validation' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${currentStep === 'validation' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              3
-            </div>
-            <span>Validation</span>
+
+        {/* Navigation rapide */}
+        <div className="flex items-center justify-center pb-3">
+          <div className="flex items-center space-x-1 bg-muted rounded-full p-1">
+            <Button
+              variant={currentView === 'menu' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('menu')}
+              className="rounded-full px-4"
+            >
+              Menu
+            </Button>
+            <Button
+              variant={currentView === 'client' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('client')}
+              disabled={!canProceedToClient()}
+              className="rounded-full px-4"
+            >
+              Client
+              {canProceedToClient() && <ChevronRight className="h-3 w-3 ml-1" />}
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Content */}
+      {/* Contenu principal */}
       <div className="flex-1 overflow-hidden">
-        {currentStep === 'commande' && (
-          <div className="h-full flex flex-col lg:flex-row">
+        {currentView === 'menu' && (
+          <div className="h-full flex">
             {/* Menu des produits */}
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex-shrink-0 p-4 border-b">
+              {/* Contrôles */}
+              <div className="flex-shrink-0 p-4 space-y-3 border-b">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select value={typeCommande} onValueChange={(value: any) => setTypeCommande(value)}>
-                    <SelectTrigger className="w-full sm:w-40">
+                    <SelectTrigger className="w-full sm:w-48">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sur_place">Sur place</SelectItem>
-                      <SelectItem value="a_emporter">À emporter</SelectItem>
-                      <SelectItem value="livraison">Livraison</SelectItem>
+                      <SelectItem value="sur_place">🍽️ Sur place</SelectItem>
+                      <SelectItem value="a_emporter">📦 À emporter</SelectItem>
+                      <SelectItem value="livraison">🚚 Livraison</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -347,92 +363,114 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                     />
                   </div>
                 </div>
+
+                {/* Catégories */}
+                <div className="flex space-x-2 overflow-x-auto pb-2">
+                  {categories.map(cat => (
+                    <Button
+                      key={cat.key}
+                      variant={categorieActive === cat.key ? "default" : "outline"}
+                      onClick={() => setCategorieActive(cat.key)}
+                      className="whitespace-nowrap min-w-0 flex items-center space-x-2"
+                      size="sm"
+                    >
+                      <span>{cat.icon}</span>
+                      <span className="hidden sm:inline">{cat.label}</span>
+                    </Button>
+                  ))}
+                </div>
               </div>
 
-              <Tabs defaultValue={categories[0].key} className="flex-1 flex flex-col min-h-0">
-                <div className="flex-shrink-0 px-4 pt-3">
-                  <TabsList className="grid w-full grid-cols-4">
-                    {categories.map(cat => (
-                      <TabsTrigger key={cat.key} value={cat.key} className="text-xs">
-                        <span className="mr-1">{cat.icon}</span>
-                        <span className="hidden sm:inline">{cat.label}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </div>
-
-                {categories.map(cat => (
-                  <TabsContent key={cat.key} value={cat.key} className="flex-1 overflow-hidden m-0">
-                    <div className="h-full overflow-y-auto p-4 space-y-2">
-                      {produits
-                        .filter(p => p.categorie === cat.key)
-                        .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
-                        .map(produit => {
-                          const quantiteInPanier = getQuantiteInPanier(produit.id);
-                          const isSelected = quantiteInPanier > 0;
-                          
-                          return (
-                            <div 
-                              key={produit.id} 
-                              className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                                isSelected 
-                                  ? 'bg-primary/5 border-primary/20 shadow-sm' 
-                                  : 'bg-card border-border hover:bg-muted/50'
-                              }`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm truncate">{formatProduitNom(produit.nom, produit.categorie)}</h4>
-                                <p className="text-primary font-semibold text-sm">{produit.prix.toFixed(2)}€</p>
-                              </div>
-                              
-                              <div className="flex items-center space-x-2 ml-3">
-                                {isSelected && (
-                                  <div className="flex items-center space-x-1">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => modifierQuantite(produit.id, -1)}
-                                      className="h-7 w-7 p-0"
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </Button>
-                                    <Badge variant="secondary" className="min-w-[2rem] justify-center">
-                                      {quantiteInPanier}
-                                    </Badge>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => modifierQuantite(produit.id, 1)}
-                                      className="h-7 w-7 p-0"
-                                    >
-                                      <Plus className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                                {!isSelected && (
+              {/* Liste des produits */}
+              <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="p-4 space-y-3">
+                    {produits
+                      .filter(p => p.categorie === categorieActive)
+                      .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(produit => {
+                        const quantiteInPanier = getQuantiteInPanier(produit.id);
+                        const isSelected = quantiteInPanier > 0;
+                        
+                        return (
+                          <Card 
+                            key={produit.id} 
+                            className={`transition-all hover:shadow-md ${
+                              isSelected ? 'ring-2 ring-primary/20 bg-primary/5' : ''
+                            }`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm mb-1 truncate">{formatProduitNom(produit.nom, produit.categorie)}</h4>
+                                  <p className="text-primary font-bold">{produit.prix.toFixed(2)}€</p>
+                                </div>
+                                
+                                <div className="flex items-center space-x-3 ml-4">
+                                  {isSelected && (
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => modifierQuantite(produit.id, -1)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </Button>
+                                      <Badge variant="secondary" className="min-w-[2.5rem] justify-center font-bold">
+                                        {quantiteInPanier}
+                                      </Badge>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => modifierQuantite(produit.id, 1)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                  
                                   <Button
                                     onClick={() => ajouterAuPanier(produit)}
                                     size="sm"
-                                    className="h-7 px-3"
+                                    className={isSelected ? 'bg-primary/80' : ''}
                                   >
                                     <Plus className="h-3 w-3 mr-1" />
-                                    <span className="hidden sm:inline">Ajouter</span>
+                                    {isSelected ? 'Ajouter' : 'Ajouter'}
                                   </Button>
-                                )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              {/* Notes générales */}
+              <div className="flex-shrink-0 p-4 border-t bg-muted/30">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Instructions spéciales
+                  </Label>
+                  <Textarea
+                    placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
+                    value={notesGenerales}
+                    onChange={(e) => setNotesGenerales(e.target.value)}
+                    rows={2}
+                    className="text-sm resize-none"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Panier sidebar */}
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-muted/30 flex flex-col">
-              <div className="flex-shrink-0 p-4 border-b">
-                <div className="flex items-center justify-between">
+            <div className="w-80 border-l bg-muted/20 flex flex-col">
+              <div className="flex-shrink-0 p-4 border-b bg-background">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold flex items-center">
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Panier ({panier.length})
@@ -448,66 +486,96 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                     </Button>
                   )}
                 </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4">
-                {panier.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                    <ShoppingCart className="h-8 w-8 mb-2" />
-                    <p className="text-sm">Panier vide</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {panier.map((item) => (
-                      <div key={item.produit.id} className="p-3 bg-background rounded-lg border">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h5 className="text-sm font-medium truncate">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
-                            <p className="text-xs text-muted-foreground">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
-                          </div>
-                          <div className="flex items-center space-x-1 ml-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => modifierQuantite(item.produit.id, -1)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="text-sm w-6 text-center">{item.quantite}</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => modifierQuantite(item.produit.id, 1)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="flex justify-end mt-2">
-                          <p className="text-sm font-semibold text-primary">
-                            {(item.produit.prix * item.quantite).toFixed(2)}€
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                
+                {panier.length > 0 && (
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-primary">{calculerTotal().toFixed(2)}€</p>
+                    <p className="text-sm text-muted-foreground">{panier.reduce((sum, item) => sum + item.quantite, 0)} articles</p>
                   </div>
                 )}
               </div>
 
+              <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="p-4">
+                    {panier.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                        <ShoppingCart className="h-8 w-8 mb-2" />
+                        <p className="text-sm text-center">Ajoutez des produits à votre commande</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {panier.map((item) => (
+                          <Card key={item.produit.id} className="p-3">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="text-sm font-medium truncate">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
+                                  <p className="text-xs text-muted-foreground">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => modifierQuantite(item.produit.id, -1)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                  <span className="text-sm w-6 text-center font-medium">{item.quantite}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => modifierQuantite(item.produit.id, 1)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-between items-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingItemNotes(editingItemNotes === item.produit.id ? null : item.produit.id)}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  <Edit3 className="h-3 w-3 mr-1" />
+                                  Notes
+                                </Button>
+                                <p className="text-sm font-bold text-primary">
+                                  {(item.produit.prix * item.quantite).toFixed(2)}€
+                                </p>
+                              </div>
+                              
+                              {editingItemNotes === item.produit.id && (
+                                <Textarea
+                                  placeholder="Notes pour cet article..."
+                                  value={item.notes || ''}
+                                  onChange={(e) => modifierNotesItem(item.produit.id, e.target.value)}
+                                  rows={2}
+                                  className="text-xs"
+                                />
+                              )}
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+
               {panier.length > 0 && (
                 <div className="flex-shrink-0 p-4 border-t bg-background">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="font-semibold">Total:</span>
-                    <span className="text-lg font-bold text-primary">{calculerTotal().toFixed(2)}€</span>
-                  </div>
                   <Button
-                    onClick={() => setCurrentStep('client')}
-                    disabled={panier.length === 0}
+                    onClick={() => setCurrentView('client')}
                     className="w-full"
+                    size="lg"
                   >
                     Continuer
+                    <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
               )}
@@ -515,9 +583,9 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           </div>
         )}
 
-        {currentStep === 'client' && (
-          <div className="p-6 max-w-md mx-auto">
-            <Card>
+        {currentView === 'client' && (
+          <div className="h-full flex items-center justify-center p-6">
+            <Card className="w-full max-w-md">
               <CardHeader>
                 <CardTitle className="text-lg">Informations client</CardTitle>
               </CardHeader>
@@ -579,107 +647,29 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                   </>
                 )}
 
-                <div>
-                  <Label htmlFor="notes">Notes (optionnel)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Instructions spéciales..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={2}
-                  />
+                <Separator />
+
+                {/* Récapitulatif */}
+                <div className="space-y-3">
+                  <h4 className="font-medium">Récapitulatif</h4>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Type:</strong> {typeCommande === 'sur_place' ? 'Sur place' : typeCommande === 'a_emporter' ? 'À emporter' : 'Livraison'}</p>
+                    <p><strong>Articles:</strong> {panier.length} ({panier.reduce((sum, item) => sum + item.quantite, 0)} unités)</p>
+                    <p><strong>Total:</strong> <span className="text-primary font-bold">{calculerTotal().toFixed(2)}€</span></p>
+                  </div>
                 </div>
 
                 <div className="flex space-x-3 pt-4">
                   <Button
                     variant="outline"
-                    onClick={() => setCurrentStep('commande')}
+                    onClick={() => setCurrentView('menu')}
                     className="flex-1"
                   >
                     Retour
                   </Button>
                   <Button
-                    onClick={() => setCurrentStep('validation')}
-                    disabled={!clientInfo.nom.trim() || (typeCommande === 'livraison' && (!clientInfo.telephone.trim() || !clientInfo.adresse.trim()))}
-                    className="flex-1"
-                  >
-                    Continuer
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {currentStep === 'validation' && (
-          <div className="p-6 max-w-lg mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Récapitulatif de la commande</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Type de commande */}
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="font-medium">Type:</span>
-                  <Badge variant="outline">
-                    {typeCommande === 'sur_place' ? 'Sur place' : 
-                     typeCommande === 'a_emporter' ? 'À emporter' : 'Livraison'}
-                  </Badge>
-                </div>
-
-                {/* Infos client */}
-                <div className="p-3 bg-muted rounded-lg space-y-2">
-                  <h4 className="font-medium flex items-center">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Client
-                  </h4>
-                  <p className="text-sm">{clientInfo.nom}</p>
-                  {typeCommande === 'livraison' && (
-                    <>
-                      <p className="text-sm">{clientInfo.telephone}</p>
-                      <p className="text-sm flex items-start">
-                        <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
-                        {clientInfo.adresse}
-                      </p>
-                    </>
-                  )}
-                  {notes && (
-                    <p className="text-sm text-muted-foreground italic">Notes: {notes}</p>
-                  )}
-                </div>
-
-                {/* Articles */}
-                <div>
-                  <h4 className="font-medium mb-3">Articles commandés</h4>
-                  <div className="space-y-2">
-                    {panier.map((item) => (
-                      <div key={item.produit.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{formatProduitNom(item.produit.nom, item.produit.categorie)}</p>
-                          <p className="text-xs text-muted-foreground">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
-                        </div>
-                        <p className="font-semibold">{(item.produit.prix * item.quantite).toFixed(2)}€</p>
-                      </div>
-                    ))}
-                  </div>
-                  <Separator className="my-3" />
-                  <div className="flex justify-between items-center text-lg font-bold">
-                    <span>Total:</span>
-                    <span className="text-primary">{calculerTotal().toFixed(2)}€</span>
-                  </div>
-                </div>
-
-                <div className="flex space-x-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentStep('client')}
-                    className="flex-1"
-                  >
-                    Modifier
-                  </Button>
-                  <Button
                     onClick={validerCommande}
-                    disabled={isLoading}
+                    disabled={isLoading || !canValidateOrder()}
                     className="flex-1"
                   >
                     {isLoading ? "Création..." : "Valider"}
