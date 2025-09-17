@@ -144,14 +144,11 @@ const GestionMotsDePasse = ({ onClose }: GestionMotsDePasseProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center">
         <div className="flex items-center space-x-2">
           <Key className="h-6 w-6 text-red-600" />
           <h2 className="text-xl font-bold text-gray-900">Gestion des mots de passe</h2>
         </div>
-        <Button variant="outline" onClick={onClose}>
-          Fermer
-        </Button>
       </div>
 
       <div className="grid gap-4">
