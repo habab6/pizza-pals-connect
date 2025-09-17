@@ -74,7 +74,7 @@ const Dashboard = () => {
                 {currentSession && (
                   <div className="flex items-center space-x-2">
                     <Lock className="h-4 w-4 text-green-600" />
-                    <span>Connecté en tant que <strong>{currentSession.posteName}</strong></span>
+                    <span>Connecté</span>
                   </div>
                 )}
               </div>
@@ -85,14 +85,6 @@ const Dashboard = () => {
               >
                 <Lock className="h-4 w-4" />
                 <span>Déconnexion</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Retour</span>
               </Button>
             </div>
           </div>
