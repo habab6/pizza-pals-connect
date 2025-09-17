@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, Clock, CheckCircle, Truck, UserCheck, Settings, CreditCard, Trash2, Database, Receipt, Key } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
+import { useAdaptivePolling } from "@/hooks/useAdaptivePolling";
 import NouvelleCommande from "@/components/commandes/NouvelleCommande";
 import CommandeDetailsModal from "@/components/modals/CommandeDetailsModal";
 import HistoriqueCommandes from "./HistoriqueCommandes";
@@ -14,6 +14,7 @@ import GestionArticles from "@/components/gestion/GestionArticles";
 import GestionMotsDePasse from "@/components/gestion/GestionMotsDePasse";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;
@@ -40,10 +41,9 @@ const CaissierDashboard = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
 
-  // Hook optimisé - 10 secondes pour le caissier (moins critique)
-  const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
+  // Hook adaptatif intelligent 🧠
+  const { commandes, isLoading, forceRefresh, debugInfo } = useAdaptivePolling({
     role: 'caissier',
-    intervalMs: 10000, // Réduit de 90% les requêtes
     enableRealtime: true
   });
 

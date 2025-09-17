@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle, Sandwich } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
-import { formatProduitNom } from "@/utils/formatters";
+import { useAdaptivePolling } from "@/hooks/useAdaptivePolling";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
+import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;
@@ -37,10 +37,9 @@ const CuisinierDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  // Hook optimisé - 5 secondes au lieu de 1 seconde
-  const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
+  // Hook adaptatif intelligent 🧠
+  const { commandes, isLoading, forceRefresh, debugInfo } = useAdaptivePolling({
     role: 'cuisinier',
-    intervalMs: 5000, // Réduit de 80% les requêtes
     enableRealtime: true
   });
 
@@ -139,17 +138,17 @@ const CuisinierDashboard = () => {
   };
 
   const isCommandeMixte = (commande: any) => {
-    const hasDolce = commande.commande_items?.some(item => 
+    const hasDolce = commande.commande_items?.some((item: any) => 
       ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
     );
-    const hasLSF = commande.commande_items?.some(item => 
+    const hasLSF = commande.commande_items?.some((item: any) => 
       ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
     );
     return hasDolce && hasLSF;
   };
 
   const getItemsLSF = (commande: any) => {
-    return commande.commande_items?.filter(item => 
+    return commande.commande_items?.filter((item: any) => 
       ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
     ) || [];
   };
@@ -164,6 +163,9 @@ const CuisinierDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Info en développement */}
+      <DebugInfo debugInfo={debugInfo} />
+      
       {/* Header */}
       <div className="flex items-center space-x-3">
         <ChefHat className="h-8 w-8 text-red-600" />
@@ -178,9 +180,9 @@ const CuisinierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouveau</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {commandes.filter(c => {
+                  {commandes.filter((c: any) => {
                     const itemsLSF = getItemsLSF(c);
-                    const statutLSF = (c as any).statut_961_lsf || 'nouveau';
+                    const statutLSF = c.statut_961_lsf || 'nouveau';
                     return itemsLSF.length > 0 && statutLSF === 'nouveau';
                   }).length}
                 </p>
@@ -196,9 +198,9 @@ const CuisinierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {commandes.filter(c => {
+                  {commandes.filter((c: any) => {
                     const itemsLSF = getItemsLSF(c);
-                    const statutLSF = (c as any).statut_961_lsf || 'nouveau';
+                    const statutLSF = c.statut_961_lsf || 'nouveau';
                     return itemsLSF.length > 0 && statutLSF === 'en_preparation';
                   }).length}
                 </p>
@@ -214,9 +216,9 @@ const CuisinierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prêt</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {commandes.filter(c => {
+                  {commandes.filter((c: any) => {
                     const itemsLSF = getItemsLSF(c);
-                    const statutLSF = (c as any).statut_961_lsf || 'nouveau';
+                    const statutLSF = c.statut_961_lsf || 'nouveau';
                     return itemsLSF.length > 0 && statutLSF === 'pret';
                   }).length}
                 </p>
@@ -242,7 +244,7 @@ const CuisinierDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {commandes.map((commande: any) => {
               const itemsLSF = getItemsLSF(commande);
-              const statutLSF = (commande as any).statut_961_lsf || 'nouveau';
+              const statutLSF = commande.statut_961_lsf || 'nouveau';
               const isMixte = isCommandeMixte(commande);
               const isNouveau = statutLSF === 'nouveau';
 
@@ -273,7 +275,7 @@ const CuisinierDashboard = () => {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Articles 961 LSF ({itemsLSF.length}):</h4>
                       <div className="space-y-1 max-h-32 overflow-y-auto">
-                        {itemsLSF.map((item, index) => (
+                        {itemsLSF.map((item: any, index: number) => (
                           <div key={index} className="flex justify-between items-center text-sm bg-red-50 p-2 rounded">
                             <div className="flex-1">
                               <span className="font-medium">{item.quantite}x</span> {item.produits.nom}
@@ -296,45 +298,45 @@ const CuisinierDashboard = () => {
                     {/* Temps et actions */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-500">
-                            {new Date(commande.created_at).toLocaleTimeString('fr-FR')}
-                          </span>
-                          <span className="font-semibold">{commande.total.toFixed(2)}€</span>
-                        </div>
+                        <span className="text-gray-500">
+                          {new Date(commande.created_at).toLocaleTimeString('fr-FR')}
+                        </span>
+                        <span className="font-semibold">{commande.total.toFixed(2)}€</span>
+                      </div>
 
-                        {/* Actions selon le statut */}
-                        <div className="flex space-x-2">
-                          {statutLSF === 'nouveau' && (
-                            <Button
-                              onClick={() => changerStatut(commande.id, 'en_preparation')}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700"
-                              size="sm"
-                            >
-                              <ChefHat className="h-4 w-4 mr-1" />
-                              Commencer
-                            </Button>
-                          )}
-                          
-                          {statutLSF === 'en_preparation' && (
-                            <Button
-                              onClick={() => changerStatut(commande.id, 'pret')}
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                              size="sm"
-                            >
+                      {/* Actions selon le statut */}
+                      <div className="flex space-x-2">
+                        {statutLSF === 'nouveau' && (
+                          <Button
+                            onClick={() => changerStatut(commande.id, 'en_preparation')}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            size="sm"
+                          >
+                            <ChefHat className="h-4 w-4 mr-1" />
+                            Commencer
+                          </Button>
+                        )}
+                        
+                        {statutLSF === 'en_preparation' && (
+                          <Button
+                            onClick={() => changerStatut(commande.id, 'pret')}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            size="sm"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Terminer
+                          </Button>
+                        )}
+
+                        {statutLSF === 'pret' && (
+                          <div className="flex-1 text-center">
+                            <Badge variant="success" className="px-3 py-1">
                               <CheckCircle className="h-4 w-4 mr-1" />
-                              Terminer
-                            </Button>
-                          )}
-
-                          {statutLSF === 'pret' && (
-                            <div className="flex-1 text-center">
-                              <Badge variant="success" className="px-3 py-1">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Prêt à servir
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
+                              Prêt à servir
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -354,7 +356,7 @@ const CuisinierDashboard = () => {
         }}
         onAccept={() => {
           if (nouvelleCommande) {
-                            changerStatut(nouvelleCommande.id, 'en_preparation');
+            changerStatut(nouvelleCommande.id, 'en_preparation');
           }
         }}
         title="Nouvelle commande 961 LSF!"

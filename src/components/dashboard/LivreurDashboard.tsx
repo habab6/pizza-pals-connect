@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Phone, MapPin, Clock, CheckCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
+import { useAdaptivePolling } from "@/hooks/useAdaptivePolling";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;
@@ -42,10 +43,9 @@ const LivreurDashboard = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
 
-  // Hook optimisé - 5 secondes au lieu de 1 seconde  
-  const { commandes, mesLivraisons, isLoading, forceRefresh } = useOptimizedCommandes({
+  // Hook adaptatif intelligent 🧠  
+  const { commandes, mesLivraisons, isLoading, forceRefresh, debugInfo } = useAdaptivePolling({
     role: 'livreur',
-    intervalMs: 5000, // Réduit de 80% les requêtes
     enableRealtime: true
   });
 
@@ -197,6 +197,9 @@ const LivreurDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Info en développement */}
+      <DebugInfo debugInfo={debugInfo} />
+      
       <div className="flex items-center space-x-3">
         <Truck className="h-8 w-8 text-red-600" />
         <h2 className="text-2xl font-bold text-gray-900">Tableau de bord</h2>

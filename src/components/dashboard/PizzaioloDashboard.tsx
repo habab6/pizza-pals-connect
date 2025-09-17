@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ChefHat, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useOptimizedCommandes } from "@/hooks/useOptimizedCommandes";
+import { useAdaptivePolling } from "@/hooks/useAdaptivePolling";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
+import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;
@@ -36,19 +37,14 @@ const PizzaioloDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  // Hook optimisé - 5 secondes au lieu de 1 seconde pour le pizzaiolo
-  const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
-    role: 'cuisinier', // Utilise la même logique que le cuisinier mais filtrera pour Dolce Italia
-    intervalMs: 5000, // Réduit de 80% les requêtes
+  // Hook adaptatif intelligent 🧠
+  const { commandes, isLoading, forceRefresh, debugInfo } = useAdaptivePolling({
+    role: 'pizzaiolo',
     enableRealtime: true
   });
 
-  // Filtrer les commandes Dolce Italia depuis les données optimisées
-  const commandesDolce = commandes.filter((commande: any) => 
-    commande.commande_items?.some((item: any) => 
-      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
-    )
-  );
+  // Filtrer les commandes Dolce Italia depuis les données adaptives
+  const commandesDolce = commandes;
 
   const fetchCommandeComplete = async (commandeId: string) => {
     try {
@@ -158,6 +154,9 @@ const PizzaioloDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Info en développement */}
+      <DebugInfo debugInfo={debugInfo} />
+      
       <div className="flex items-center space-x-3">
         <ChefHat className="h-8 w-8 text-red-600" />
         <h2 className="text-2xl font-bold text-gray-900">Pizzaiolo - Dolce Italia</h2>
