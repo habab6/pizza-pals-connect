@@ -225,7 +225,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           caissier_id: null,
           total: calculerTotal(),
           notes: notesGenerales.trim() || null,
-          numero_commande: `CMD${Date.now()}`
+          numero_commande: `CMD${Date.now()}`,
+          commerce_principal: 'dolce_italia' // Valeur par défaut, le trigger la mettra à jour
         })
         .select()
         .single();

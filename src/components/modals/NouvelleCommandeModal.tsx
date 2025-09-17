@@ -10,6 +10,7 @@ interface Commande {
   id: string;
   numero_commande: string;
   type_commande: 'sur_place' | 'a_emporter' | 'livraison';
+  commerce_principal: 'dolce_italia' | '961_lsf';
   statut: string;
   total: number;
   notes?: string;
@@ -24,6 +25,7 @@ interface Commande {
     produits: {
       nom: string;
       categorie: string;
+      commerce: string;
     };
   }>;
 }
@@ -117,21 +119,60 @@ const NouvelleCommandeModal = ({
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Items de la commande */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg flex items-center">
-                    Articles commandés:
-                  </h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {commande.commande_items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium">
-                          {item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                {/* Séparation par commerce */}
+                {(() => {
+                  const dolceItems = commande.commande_items.filter(item => 
+                    item.produits.commerce === 'dolce_italia'
+                  );
+                  const lsfItems = commande.commande_items.filter(item => 
+                    item.produits.commerce === '961_lsf'
+                  );
+                  const hasBothCommerces = dolceItems.length > 0 && lsfItems.length > 0;
+
+                  return (
+                    <div className="space-y-4">
+                      {hasBothCommerces && (
+                        <div className="bg-orange-50 p-3 rounded-lg border-l-4 border-orange-400">
+                          <p className="text-orange-800 font-medium">⚠️ Commande mixte - Préparation coordonnée requise</p>
+                        </div>
+                      )}
+
+                      {dolceItems.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="font-semibold text-lg flex items-center">
+                            🍕 Dolce Italia:
+                          </h3>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {dolceItems.map((item, index) => (
+                              <div key={`dolce-${index}`} className="flex justify-between items-center p-3 bg-red-50 rounded-lg border-l-2 border-red-400">
+                                <span className="font-medium">
+                                  {item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {lsfItems.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="font-semibold text-lg flex items-center">
+                            🥪 961 LSF:
+                          </h3>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {lsfItems.map((item, index) => (
+                              <div key={`lsf-${index}`} className="flex justify-between items-center p-3 bg-green-50 rounded-lg border-l-2 border-green-400">
+                                <span className="font-medium">
+                                  {item.quantite}x {formatProduitNom(item.produits.nom, item.produits.categorie)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Informations client (pour livraisons) */}
                 {commande.type_commande === 'livraison' && commande.clients && (

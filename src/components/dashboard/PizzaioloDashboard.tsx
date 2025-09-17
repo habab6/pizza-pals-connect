@@ -13,6 +13,7 @@ interface Commande {
   id: string;
   numero_commande: string;
   type_commande: 'sur_place' | 'a_emporter' | 'livraison';
+  commerce_principal: 'dolce_italia' | '961_lsf';
   statut: 'nouveau' | 'en_preparation' | 'pret' | 'en_livraison' | 'livre' | 'termine';
   total: number;
   notes?: string;
@@ -25,6 +26,7 @@ interface Commande {
     produits: {
       nom: string;
       categorie: string;
+      commerce: string;
     };
   }>;
 }
