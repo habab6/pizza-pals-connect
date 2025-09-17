@@ -17,19 +17,22 @@ class NotificationAudio {
     const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
     const data = buffer.getChannelData(0);
 
-    // Generate a pleasant notification sound (two tones)
+    // Generate a soft, pleasant notification sound (gentle chime)
     for (let i = 0; i < buffer.length; i++) {
       const t = i / sampleRate;
-      // Two sine waves for a pleasant notification sound
-      const freq1 = 800; // First tone
-      const freq2 = 1000; // Second tone higher
-      const envelope = Math.exp(-t * 3); // Decay envelope
+      // Softer frequencies for a gentler sound
+      const freq1 = 523; // C5 note (softer)
+      const freq2 = 659; // E5 note (harmonious)
+      const envelope = Math.exp(-t * 2) * (1 - Math.pow(t / duration, 2)); // Smoother decay
       
-      if (t < 0.15) {
-        data[i] = Math.sin(2 * Math.PI * freq1 * t) * envelope * 0.3;
-      } else {
-        data[i] = Math.sin(2 * Math.PI * freq2 * (t - 0.15)) * envelope * 0.3;
-      }
+      // Blend the two tones for a harmonious chime
+      const wave1 = Math.sin(2 * Math.PI * freq1 * t) * envelope * 0.15;
+      const wave2 = Math.sin(2 * Math.PI * freq2 * t) * envelope * 0.1;
+      
+      // Add a subtle third harmonic for richness
+      const harmonic = Math.sin(2 * Math.PI * freq1 * 1.5 * t) * envelope * 0.05;
+      
+      data[i] = wave1 + wave2 + harmonic;
     }
 
     // Convert to data URL
