@@ -23,8 +23,17 @@ const Index = () => {
     
     const success = await authenticatePoste(selectedPoste.id, password);
     if (success) {
-      // Authentification réussie, rediriger vers le dashboard
-      navigate(`/dashboard/${selectedPoste.id}`);
+      // Sauvegarder l'ID du poste avant de fermer la modal
+      const posteId = selectedPoste.id;
+      
+      // Fermer la modal d'abord
+      setShowLoginModal(false);
+      setSelectedPoste(null);
+      
+      // Rediriger vers le dashboard avec un petit délai pour laisser la modal se fermer
+      setTimeout(() => {
+        navigate(`/dashboard/${posteId}`);
+      }, 100);
     }
     return success;
   };
