@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.web-push-send]
+verify_jwt = false

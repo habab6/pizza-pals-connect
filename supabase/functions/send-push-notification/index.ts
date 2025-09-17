@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const VAPID_PRIVATE_KEY = 'BMqS3ormk_lRH-5ejU5zGJZhvOLh3GtA8DJzW4jJ5rYwrXywJzyRfgWzabNndbh1FIIY6RqCL2tCbGD5-wuvhBY';
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -43,6 +41,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Trouvé ${subscriptions.length} abonnement(s) pour ${poste_type}`);
+
     // Préparer le payload de notification
     const payload = JSON.stringify({
       title,
@@ -54,28 +54,32 @@ serve(async (req) => {
       requireInteraction: true
     });
 
-    // Envoyer les notifications à tous les abonnements
+    // Envoyer les notifications à tous les abonnements via Web Push API
     const promises = subscriptions.map(async (subscription) => {
       try {
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        console.log('Envoi vers:', subscription.endpoint);
+        
+        // Utiliser l'API Web Push standard avec le service worker
+        const response = await fetch('https://rllqnpopmacbyyhnhljc.supabase.co/functions/v1/web-push-send', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `key=${VAPID_PRIVATE_KEY}`,
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
           },
           body: JSON.stringify({
-            to: subscription.endpoint,
-            notification: {
-              title,
-              body: message,
-              icon: '/placeholder.svg'
+            subscription: {
+              endpoint: subscription.endpoint,
+              keys: subscription.keys
             },
-            data: data || {}
+            payload
           })
         });
 
         if (!response.ok) {
-          console.error('Erreur lors de l\'envoi de la notification:', await response.text());
+          const errorText = await response.text();
+          console.error('Erreur lors de l\'envoi de la notification:', errorText);
+        } else {
+          console.log('Notification envoyée avec succès vers:', subscription.endpoint);
         }
       } catch (error) {
         console.error('Erreur lors de l\'envoi à', subscription.endpoint, ':', error);

@@ -134,7 +134,16 @@ export const usePushNotifications = () => {
 
   const sendNotification = async (title: string, message: string, data?: any) => {
     try {
-      // Envoyer la notification via l'edge function
+      // D'abord essayer d'envoyer via le service worker directement
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        console.log('Envoi notification via Service Worker');
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SEND_NOTIFICATION',
+          payload: { title, message, data }
+        });
+      }
+
+      // Puis envoyer via l'edge function pour les autres abonnements
       const { error } = await supabase.functions.invoke('send-push-notification', {
         body: {
           title,

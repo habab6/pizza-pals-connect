@@ -76,3 +76,39 @@ self.addEventListener('activate', event => {
     })
   );
 });
+
+// Écouter les messages de l'application principale
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SEND_NOTIFICATION') {
+    const { title, message, data } = event.data.payload;
+    
+    console.log('Service Worker: Réception demande notification:', { title, message });
+    
+    const options = {
+      body: message,
+      icon: '/placeholder.svg',
+      badge: '/placeholder.svg',
+      vibrate: [200, 100, 200],
+      data: data || {},
+      actions: [
+        {
+          action: 'view',
+          title: 'Voir',
+          icon: '/placeholder.svg'
+        }
+      ],
+      requireInteraction: true,
+      silent: false
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+        .then(() => {
+          console.log('Service Worker: Notification affichée avec succès');
+        })
+        .catch(error => {
+          console.error('Service Worker: Erreur affichage notification:', error);
+        })
+    );
+  }
+});
