@@ -37,10 +37,10 @@ const CuisinierDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  // Hook optimisé - 3 secondes au lieu de 1 seconde
+  // Hook optimisé - 5 secondes au lieu de 1 seconde
   const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
     role: 'cuisinier',
-    intervalMs: 3000, // Réduit de 70% les requêtes
+    intervalMs: 5000, // Réduit de 80% les requêtes
     enableRealtime: true
   });
 

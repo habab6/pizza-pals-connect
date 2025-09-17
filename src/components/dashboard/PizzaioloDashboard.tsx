@@ -36,10 +36,10 @@ const PizzaioloDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  // Hook optimisé - 3 secondes au lieu de 1 seconde pour le pizzaiolo
+  // Hook optimisé - 5 secondes au lieu de 1 seconde pour le pizzaiolo
   const { commandes, isLoading, forceRefresh } = useOptimizedCommandes({
     role: 'cuisinier', // Utilise la même logique que le cuisinier mais filtrera pour Dolce Italia
-    intervalMs: 3000, // Réduit de 70% les requêtes
+    intervalMs: 5000, // Réduit de 80% les requêtes
     enableRealtime: true
   });
 
