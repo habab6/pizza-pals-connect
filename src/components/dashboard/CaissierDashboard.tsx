@@ -224,58 +224,6 @@ const CaissierDashboard = () => {
         </Card>
       </div>
 
-      {/* Commandes en livraison */}
-      {commandes.filter(c => c.type_commande === 'livraison' && c.statut === 'en_livraison').length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Truck className="h-5 w-5 text-blue-600" />
-              <span>Commandes en livraison</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {commandes
-                .filter(c => c.type_commande === 'livraison' && c.statut === 'en_livraison')
-                .map((commande) => (
-                  <div key={commande.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 bg-blue-50 rounded-lg gap-3 sm:gap-0 border-l-4 border-l-blue-500">
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-2 gap-1 sm:gap-0">
-                        <h3 className="font-semibold text-base md:text-lg">{commande.numero_commande}</h3>
-                        <div className="flex items-center space-x-2">
-                          {getStatusBadge(commande.statut)}
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs md:text-sm text-gray-600 gap-1 sm:gap-0">
-                        <span className="font-medium">Total: {commande.total.toFixed(2)}€</span>
-                        {commande.clients && (
-                          <>
-                            <span>Client: {commande.clients.nom}</span>
-                            <span>Tél: {commande.clients.telephone}</span>
-                            {commande.clients.adresse && (
-                              <span className="text-xs">Adresse: {commande.clients.adresse}</span>
-                            )}
-                          </>
-                        )}
-                        <span className="text-xs">{new Date(commande.created_at).toLocaleString('fr-FR')}</span>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2 justify-end sm:justify-start">
-                      <Button
-                        onClick={() => voirDetails(commande.id)}
-                        variant="outline" 
-                        size="sm"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Liste des commandes */}
       <Card>
         <CardHeader>
