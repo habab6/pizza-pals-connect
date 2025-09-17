@@ -317,7 +317,7 @@ const CaissierDashboard = () => {
           </Dialog>
 
           <Dialog open={showGestionMotsDePasse} onOpenChange={setShowGestionMotsDePasse}>
-            <DialogContent className="max-w-[95vw] md:max-w-4xl h-[90vh] max-h-[95vh] overflow-hidden flex flex-col">
+            <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto">
               <GestionMotsDePasse onClose={() => setShowGestionMotsDePasse(false)} />
             </DialogContent>
           </Dialog>
