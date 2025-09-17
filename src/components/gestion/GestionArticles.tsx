@@ -252,9 +252,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       <div className="flex-shrink-0 border-b bg-background p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Gestion des articles</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Actions et filtres */}

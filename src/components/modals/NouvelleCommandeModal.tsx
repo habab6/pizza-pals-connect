@@ -95,14 +95,6 @@ const NouvelleCommandeModal = ({
                   <p className="text-red-100">Nouvelle commande reçue</p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="text-white hover:bg-red-700"
-              >
-                <X className="h-5 w-5" />
-              </Button>
             </div>
           </div>
 
