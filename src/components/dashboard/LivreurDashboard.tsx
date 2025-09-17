@@ -160,13 +160,21 @@ const LivreurDashboard = () => {
     }
 
     try {
-      const { error } = await supabase
+      console.log('[Livreur] Confirmation paiement pour', commandeToDeliver, 'avec', selectedPaymentMethod);
+      
+      // Mettre à jour tous les statuts pour forcer le passage à "termine"
+      const { data, error } = await supabase
         .from('commandes')
         .update({ 
           statut: 'termine',
+          statut_dolce_italia: 'termine',
+          statut_961_lsf: 'termine',
           mode_paiement: selectedPaymentMethod as any
         })
-        .eq('id', commandeToDeliver);
+        .eq('id', commandeToDeliver)
+        .select('id, statut, statut_dolce_italia, statut_961_lsf, mode_paiement');
+
+      console.log('[Livreur] Update result termine:', { data, error });
 
       if (error) throw error;
 
@@ -180,6 +188,7 @@ const LivreurDashboard = () => {
       setSelectedPaymentMethod("");
       fetchCommandes();
     } catch (error: any) {
+      console.error('Erreur complète termine:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
