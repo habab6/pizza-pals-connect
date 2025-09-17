@@ -247,7 +247,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 border-b bg-background p-4">
         <div className="flex items-center justify-between mb-4">

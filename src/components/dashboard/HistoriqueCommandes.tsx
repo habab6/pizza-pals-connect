@@ -129,7 +129,7 @@ const HistoriqueCommandes = () => {
           <span className="hidden md:inline">Historique</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl h-[90vh] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center space-x-3">
             <History className="h-6 w-6 text-red-600" />

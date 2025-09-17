@@ -156,7 +156,7 @@ const CaissierDashboard = () => {
                 <span className="hidden md:inline">Gérer articles</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] overflow-hidden">
+            <DialogContent className="max-w-[95vw] md:max-w-4xl h-[90vh] max-h-[95vh] overflow-hidden flex flex-col">
               <GestionArticles onClose={() => setShowGestionArticles(false)} />
             </DialogContent>
           </Dialog>
