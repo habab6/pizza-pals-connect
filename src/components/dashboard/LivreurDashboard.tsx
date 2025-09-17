@@ -152,25 +152,26 @@ const LivreurDashboard = () => {
 
   const accepterLivraison = async (commandeId: string) => {
     try {
-      const updateData: any = { 
-        statut: 'en_livraison',
-        // Pour l'instant, on assigne un ID temporaire jusqu'à l'implémentation de l'authentification
-        livreur_id: livreurProfileId || 'temp-livreur'
-      };
-      
+      const updateData: any = { statut: 'en_livraison' };
+      if (livreurProfileId) {
+        updateData.livreur_id = livreurProfileId;
+      }
+
       const { error } = await supabase
         .from('commandes')
         .update(updateData)
         .eq('id', commandeId);
 
       if (error) {
-        console.error('Erreur lors de l\'acceptation:', error);
+        console.error("Erreur lors de l'acceptation:", error);
         throw error;
       }
 
       toast({
         title: "Livraison acceptée",
-        description: "La commande a été assignée à vous"
+        description: livreurProfileId
+          ? "La commande a été assignée à vous"
+          : "Commande acceptée (non assignée à un livreur car non connecté)"
       });
 
       fetchCommandes();
