@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, History, Calendar, Search, CreditCard } from "lucide-react";
+import { Eye, History, Calendar, Search, CreditCard, FileText, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
@@ -33,6 +33,7 @@ const HistoriqueCommandes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCommandeId, setSelectedCommandeId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRapportModal, setShowRapportModal] = useState(false);
   const { toast } = useToast();
 
   const fetchHistorique = async () => {
@@ -126,6 +127,51 @@ const HistoriqueCommandes = () => {
     return filteredCommandes.filter(c => new Date(c.created_at).toDateString() === today);
   };
 
+  const getStatistiquesJour = (date?: Date) => {
+    const targetDate = date ? date.toDateString() : new Date().toDateString();
+    const commandesDuJour = commandes.filter(c => new Date(c.created_at).toDateString() === targetDate);
+    
+    const totalVentes = commandesDuJour.reduce((sum, c) => sum + c.total, 0);
+    const nombreCommandes = commandesDuJour.length;
+    
+    // Statistiques par type de commande
+    const parType = {
+      sur_place: commandesDuJour.filter(c => c.type_commande === 'sur_place'),
+      a_emporter: commandesDuJour.filter(c => c.type_commande === 'a_emporter'),
+      livraison: commandesDuJour.filter(c => c.type_commande === 'livraison')
+    };
+    
+    // Statistiques par mode de paiement
+    const parPaiement = {
+      cash: commandesDuJour.filter(c => c.mode_paiement === 'cash'),
+      bancontact: commandesDuJour.filter(c => c.mode_paiement === 'bancontact'),
+      visa: commandesDuJour.filter(c => c.mode_paiement === 'visa'),
+      mastercard: commandesDuJour.filter(c => c.mode_paiement === 'mastercard')
+    };
+    
+    return {
+      date: targetDate,
+      totalVentes,
+      nombreCommandes,
+      moyenneParCommande: nombreCommandes > 0 ? totalVentes / nombreCommandes : 0,
+      parType: {
+        sur_place: { nombre: parType.sur_place.length, total: parType.sur_place.reduce((sum, c) => sum + c.total, 0) },
+        a_emporter: { nombre: parType.a_emporter.length, total: parType.a_emporter.reduce((sum, c) => sum + c.total, 0) },
+        livraison: { nombre: parType.livraison.length, total: parType.livraison.reduce((sum, c) => sum + c.total, 0) }
+      },
+      parPaiement: {
+        cash: { nombre: parPaiement.cash.length, total: parPaiement.cash.reduce((sum, c) => sum + c.total, 0) },
+        bancontact: { nombre: parPaiement.bancontact.length, total: parPaiement.bancontact.reduce((sum, c) => sum + c.total, 0) },
+        visa: { nombre: parPaiement.visa.length, total: parPaiement.visa.reduce((sum, c) => sum + c.total, 0) },
+        mastercard: { nombre: parPaiement.mastercard.length, total: parPaiement.mastercard.reduce((sum, c) => sum + c.total, 0) }
+      }
+    };
+  };
+
+  const imprimerRapport = () => {
+    window.print();
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -144,10 +190,20 @@ const HistoriqueCommandes = () => {
       </DialogTrigger>
       <DialogContent className="max-w-6xl h-[90vh] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center space-x-3">
-            <History className="h-6 w-6 text-red-600" />
-            <span>Historique des commandes terminées</span>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center space-x-3">
+              <History className="h-6 w-6 text-red-600" />
+              <span>Historique des commandes terminées</span>
+            </DialogTitle>
+            <Button
+              variant="outline"
+              onClick={() => setShowRapportModal(true)}
+              className="flex items-center space-x-2"
+            >
+              <FileText className="h-4 w-4" />
+              <span>Rapport journalier</span>
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col space-y-4 min-h-0">
@@ -263,6 +319,152 @@ const HistoriqueCommandes = () => {
             setSelectedCommandeId(null);
           }}
         />
+
+        {/* Modale du rapport journalier */}
+        <Dialog open={showRapportModal} onOpenChange={setShowRapportModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none">
+            <DialogHeader className="print:hidden">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="flex items-center space-x-3">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                  <span>Rapport journalier des ventes</span>
+                </DialogTitle>
+                <Button
+                  variant="outline"
+                  onClick={imprimerRapport}
+                  className="flex items-center space-x-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Imprimer</span>
+                </Button>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-6 print:text-black">
+              {(() => {
+                const stats = getStatistiquesJour();
+                return (
+                  <>
+                    {/* En-tête du rapport pour impression */}
+                    <div className="text-center hidden print:block mb-8">
+                      <h1 className="text-2xl font-bold mb-2">Rapport journalier des ventes</h1>
+                      <p className="text-lg text-gray-600">{new Date().toLocaleDateString('fr-FR', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}</p>
+                    </div>
+
+                    {/* Vue d'ensemble */}
+                    <Card className="print:shadow-none print:border">
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <Calendar className="h-5 w-5" />
+                          <span>Vue d'ensemble - {new Date().toLocaleDateString('fr-FR')}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-600">Chiffre d'affaires</p>
+                            <p className="text-3xl font-bold text-green-600">{stats.totalVentes.toFixed(2)}€</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-600">Nombre de commandes</p>
+                            <p className="text-3xl font-bold text-blue-600">{stats.nombreCommandes}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-600">Panier moyen</p>
+                            <p className="text-3xl font-bold text-purple-600">{stats.moyenneParCommande.toFixed(2)}€</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Répartition par type de commande */}
+                    <Card className="print:shadow-none print:border">
+                      <CardHeader>
+                        <CardTitle>Répartition par type de commande</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Sur place</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parType.sur_place.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parType.sur_place.nombre} commande(s)</div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">À emporter</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parType.a_emporter.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parType.a_emporter.nombre} commande(s)</div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Livraison</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parType.livraison.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parType.livraison.nombre} commande(s)</div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Répartition par mode de paiement */}
+                    <Card className="print:shadow-none print:border">
+                      <CardHeader>
+                        <CardTitle>Répartition par mode de paiement</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Espèces</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parPaiement.cash.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parPaiement.cash.nombre} paiement(s)</div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Bancontact</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parPaiement.bancontact.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parPaiement.bancontact.nombre} paiement(s)</div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Visa</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parPaiement.visa.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parPaiement.visa.nombre} paiement(s)</div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Mastercard</span>
+                            <div className="text-right">
+                              <div className="font-bold">{stats.parPaiement.mastercard.total.toFixed(2)}€</div>
+                              <div className="text-sm text-gray-600">{stats.parPaiement.mastercard.nombre} paiement(s)</div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Pied de rapport pour impression */}
+                    <div className="text-center hidden print:block mt-8 pt-4 border-t">
+                      <p className="text-sm text-gray-600">
+                        Rapport généré le {new Date().toLocaleString('fr-FR')}
+                      </p>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
