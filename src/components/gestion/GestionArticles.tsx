@@ -17,7 +17,7 @@ import GestionCategories from "./GestionCategories";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra';
   commerce: 'dolce_italia' | '961_lsf';
   prix: number;
   disponible: boolean;
@@ -47,7 +47,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
-    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches',
+    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra',
     commerce: 'dolce_italia' as 'dolce_italia' | '961_lsf',
     prix: '',
     est_extra: false,
@@ -113,7 +113,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const resetForm = () => {
     setFormData({
       nom: '',
-      categorie: 'pizzas',
+      categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra',
       commerce: 'dolce_italia',
       prix: '',
       est_extra: false,

@@ -18,6 +18,7 @@ interface Produit {
   id: string;
   nom: string;
   categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra';
+  commerce: 'dolce_italia' | '961_lsf';
   prix: number;
   est_extra: boolean;
   categorie_custom_id: string | null;
@@ -43,6 +44,7 @@ interface NouvelleCommandeProps {
 
 const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [produits, setProduits] = useState<Produit[]>([]);
+  const [categoriesDb, setCategoriesDb] = useState<any[]>([]);
   const [panier, setPanier] = useState<CartItem[]>([]);
   const [typeCommande, setTypeCommande] = useState<'sur_place' | 'a_emporter' | 'livraison'>('sur_place');
   const [clientInfo, setClientInfo] = useState({
@@ -64,9 +66,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
   useEffect(() => {
     fetchProduits();
+    fetchCategories();
     
-    // Écouter les changements de produits en temps réel
-    const channel = supabase
+    // Écouter les changements de produits et catégories en temps réel
+    const produitsChannel = supabase
       .channel('produits-changes')
       .on(
         'postgres_changes',
@@ -81,8 +84,24 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       )
       .subscribe();
 
+    const categoriesChannel = supabase
+      .channel('categories-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories'
+        },
+        () => {
+          fetchCategories(); // Rafraîchir la liste des catégories
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(produitsChannel);
+      supabase.removeChannel(categoriesChannel);
     };
   }, []);
 
@@ -102,6 +121,21 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         title: "Erreur",
         description: "Impossible de charger les produits"
       });
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('actif', true)
+        .order('nom');
+
+      if (error) throw error;
+      setCategoriesDb(data || []);
+    } catch (error: any) {
+      console.error('Erreur lors du chargement des catégories:', error);
     }
   };
 
@@ -345,29 +379,47 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
+  const getCommerceCategories = (commerce: 'dolce_italia' | '961_lsf') => {
+    const defaultCategories = [
+      // Catégories par défaut pour chaque commerce
+      ...(commerce === 'dolce_italia' ? [
+        { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
+        { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+        { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+      ] : [
+        { key: 'entrees', label: 'Entrées', color: 'bg-green-50 text-green-700 border-green-200' },
+        { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+        { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+      ]),
+      // Boissons pour les deux
+      { key: 'boissons', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+      // Extra pour les deux
+      { key: 'extra', label: 'Extra', color: 'bg-gray-50 text-gray-700 border-gray-200' }
+    ];
+
+    // Ajouter les catégories personnalisées depuis la base de données
+    const customCategories = categoriesDb
+      .filter(cat => cat.commerce === commerce)
+      .map(cat => ({
+        key: cat.nom.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, ''),
+        label: cat.nom,
+        color: 'bg-purple-50 text-purple-700 border-purple-200',
+        isCustom: true
+      }));
+
+    return [...defaultCategories, ...customCategories];
+  };
+
   const commerces = {
     dolce_italia: {
       name: 'Dolce Italia',
       color: 'bg-red-50 text-red-700 border-red-200',
-      categories: [
-        { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
-        { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-        { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-        { key: 'boissons_dolce', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-        { key: 'extra', label: 'Extra', color: 'bg-gray-50 text-gray-700 border-gray-200' }
-      ]
+      categories: getCommerceCategories('dolce_italia')
     },
     '961_lsf': {
       name: '961 LSF',
       color: 'bg-green-50 text-green-700 border-green-200',
-      categories: [
-        { key: 'entrees', label: 'Entrées', color: 'bg-green-50 text-green-700 border-green-200' },
-        { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-        { key: 'bowls_salades', label: 'Bowls & Salades', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-        { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-        { key: 'boissons_lsf', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-        { key: 'extra', label: 'Extra', color: 'bg-gray-50 text-gray-700 border-gray-200' }
-      ]
+      categories: getCommerceCategories('961_lsf')
     }
   };
 
