@@ -62,7 +62,7 @@ const CuisinierDashboard = () => {
       
       // Filtrer pour s'assurer qu'il y a des items 961 LSF
       const hasLSFItems = data.commande_items?.some((item: any) => 
-        ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+        item.produits.commerce === '961_lsf'
       );
       
       if (data && hasLSFItems) {
@@ -139,17 +139,17 @@ const CuisinierDashboard = () => {
 
   const isCommandeMixte = (commande: any) => {
     const hasDolce = commande.commande_items?.some((item: any) => 
-      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+      item.produits.commerce === 'dolce_italia'
     );
     const hasLSF = commande.commande_items?.some((item: any) => 
-      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+      item.produits.commerce === '961_lsf'
     );
     return hasDolce && hasLSF;
   };
 
   const getItemsLSF = (commande: any) => {
     return commande.commande_items?.filter((item: any) => 
-      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+      item.produits.commerce === '961_lsf'
     ) || [];
   };
 

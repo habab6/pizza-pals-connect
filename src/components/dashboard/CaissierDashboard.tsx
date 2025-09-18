@@ -102,7 +102,7 @@ const CaissierDashboard = () => {
         .select(`
           *,
           produits (
-            categorie
+            commerce
           )
         `)
         .eq('commande_id', commandeToServe);
@@ -111,11 +111,11 @@ const CaissierDashboard = () => {
 
       // Déterminer quels commerces sont impliqués
       const hasDolce = items?.some(item => 
-        ['pizzas', 'pates', 'desserts'].includes(item.produits?.categorie || '')
+        item.produits?.commerce === 'dolce_italia'
       ) || false;
       
       const hasLSF = items?.some(item => 
-        ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits?.categorie || '')
+        item.produits?.commerce === '961_lsf'
       ) || false;
 
       // Préparer les mises à jour de statut
