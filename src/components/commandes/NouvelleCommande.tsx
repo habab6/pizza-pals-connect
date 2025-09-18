@@ -805,7 +805,7 @@ const NouvelleCommande = () => {
                               
                               <div className="flex justify-end">
                                 <p className="text-sm font-bold text-primary">
-                                  {((item.prix_unitaire || item.produit.prix) + (item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0)) * item.quantite).toFixed(2)}€
+                                  {(((item.prix_unitaire || item.produit.prix) + (item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0)) * item.quantite).toFixed(2)}€
                                 </p>
                               </div>
                             </div>

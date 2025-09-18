@@ -370,7 +370,7 @@ const CaissierDashboard = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] overflow-y-auto">
-            <NouvelleCommande onClose={() => setShowNouvelleCommande(false)} />
+            <NouvelleCommande />
           </DialogContent>
         </Dialog>
         </div>
