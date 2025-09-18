@@ -287,6 +287,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const hasCommerceItems = (commerce: 'dolce_italia' | '961_lsf') => {
     return panier.some(item => {
       const produit = item.produit;
+      return produit.commerce === commerce || (commerce === 'dolce_italia' && !produit.commerce);
+    });
+  };
+
   const validerCommande = async () => {
     if (panier.length === 0) {
       toast({
@@ -827,10 +831,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                                     rows={2}
                                     className="text-sm resize-none border-blue-200 focus:border-blue-300"
                                   />
-                                 </div>
-                               )}
-                             </div>
-                           )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
