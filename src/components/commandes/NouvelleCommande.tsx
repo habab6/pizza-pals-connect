@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
-import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone, MessageSquare, ChevronRight } from "lucide-react";
+import { Plus, Minus, Search, ShoppingCart, X, Check, MessageSquare, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PrixExtraModal from "@/components/modals/PrixExtraModal";
@@ -19,10 +19,11 @@ interface Produit {
   id: string;
   nom: string;
   categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra';
-  commerce: 'dolce_italia' | '961_lsf';
   prix: number;
+  commerce: 'dolce_italia' | '961_lsf';
   est_extra: boolean;
-  categorie_custom_id: string | null;
+  disponible: boolean;
+  categorie_custom_id?: string;
 }
 
 interface CartExtra {
@@ -46,13 +47,16 @@ interface Client {
   adresse?: string;
 }
 
-interface NouvelleCommandeProps {
-  onClose: () => void;
+interface CategorieDb {
+  id: string;
+  nom: string;
+  commerce: 'dolce_italia' | '961_lsf';
+  actif: boolean;
 }
 
-const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
+const NouvelleCommande = () => {
   const [produits, setProduits] = useState<Produit[]>([]);
-  const [categoriesDb, setCategoriesDb] = useState<any[]>([]);
+  const [categoriesDb, setCategoriesDb] = useState<CategorieDb[]>([]);
   const [panier, setPanier] = useState<CartItem[]>([]);
   const [typeCommande, setTypeCommande] = useState<'sur_place' | 'a_emporter' | 'livraison'>('sur_place');
   const [clientInfo, setClientInfo] = useState({
@@ -79,34 +83,25 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   useEffect(() => {
     fetchProduits();
     fetchCategories();
-    
-    // Écouter les changements de produits et catégories en temps réel
+
     const produitsChannel = supabase
-      .channel('produits-changes')
+      .channel('produits_changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'produits'
-        },
+        { event: '*', schema: 'public', table: 'produits' },
         () => {
-          fetchProduits(); // Rafraîchir la liste des produits
+          fetchProduits();
         }
       )
       .subscribe();
 
     const categoriesChannel = supabase
-      .channel('categories-changes')
+      .channel('categories_changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'categories'
-        },
+        { event: '*', schema: 'public', table: 'categories' },
         () => {
-          fetchCategories(); // Rafraîchir la liste des catégories
+          fetchCategories();
         }
       )
       .subscribe();
@@ -119,83 +114,71 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
   // Effet pour sélectionner automatiquement la première catégorie disponible
   useEffect(() => {
-    if (categoriesDb.length > 0 && !categorieActive) {
-      const categories = getCommerceCategories(commerceActive);
-      if (categories.length > 0) {
-        setCategorieActive(categories[0].key);
+    if (categorieActive === '' && categoriesDb.length > 0) {
+      const firstCategoryOfCommerce = categoriesDb.find(cat => cat.commerce === commerceActive);
+      if (firstCategoryOfCommerce) {
+        setCategorieActive(firstCategoryOfCommerce.nom.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, ''));
       }
     }
   }, [categoriesDb, commerceActive, categorieActive]);
 
-  // Effet pour changer de catégorie quand le commerce change
-  useEffect(() => {
-    const categories = getCommerceCategories(commerceActive);
-    if (categories.length > 0) {
-      setCategorieActive(categories[0].key);
-    }
-  }, [commerceActive, categoriesDb]);
-
   const fetchProduits = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('produits')
-        .select('*')
-        .eq('disponible', true)
-        .order('nom');
-
-      if (error) throw error;
-      setProduits(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les produits"
-      });
+    const { data, error } = await supabase
+      .from('produits')
+      .select('*')
+      .eq('disponible', true)
+      .order('nom');
+    
+    if (error) {
+      console.error('Erreur lors du chargement des produits:', error);
+      return;
     }
+    
+    setProduits(data || []);
+    console.log('Produits chargés:', data);
   };
 
   const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('actif', true)
-        .order('nom');
-
-      if (error) throw error;
-      setCategoriesDb(data || []);
-    } catch (error: any) {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('actif', true)
+      .order('nom');
+    
+    if (error) {
       console.error('Erreur lors du chargement des catégories:', error);
+      return;
     }
+    
+    setCategoriesDb(data || []);
   };
 
-  const searchClient = async (telephone: string) => {
-    if (telephone.length < 8) {
+  const searchClient = async (telephone: string, shouldSearch = true) => {
+    if (!telephone.trim() || !shouldSearch) {
       setClientExistant(null);
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('telephone', telephone)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('telephone', telephone.trim())
+      .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (data) {
-        setClientExistant(data);
-        setClientInfo({
-          nom: data.nom,
-          telephone: data.telephone,
-          adresse: data.adresse || ''
-        });
-      } else {
-        setClientExistant(null);
-      }
-    } catch (error: any) {
+    if (error && error.code !== 'PGRST116') {
       console.error('Erreur recherche client:', error);
+      return;
+    }
+
+    if (data) {
+      setClientExistant(data);
+      setClientInfo({
+        nom: data.nom,
+        telephone: data.telephone,
+        adresse: data.adresse || ''
+      });
+    } else {
+      setClientExistant(null);
     }
   };
 
@@ -215,17 +198,18 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             : item
         );
       }
-      return [...prev, { 
-        produit, 
+      return [...prev, {
+        produit,
         quantite: 1,
-        prix_unitaire: prixPersonnalise || produit.prix,
-        nom_personnalise: nomPersonnalise
+        prix_unitaire: prixPersonnalise,
+        nom_personnalise: nomPersonnalise,
+        extras: []
       }];
     });
   };
 
-  const handleProductClick = (produit: Produit) => {
-    console.log('Produit cliqué:', produit);
+  const handleProduitClick = (produit: Produit) => {
+    console.log('Clic sur produit:', produit.nom);
     console.log('Est un produit extra?', produit.est_extra);
     
     if (produit.est_extra) {
@@ -246,14 +230,12 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
-  const modifierQuantite = (produitId: string, delta: number) => {
+  const modifierQuantite = (produitId: string, changement: number) => {
     setPanier(prev =>
       prev.map(item => {
         if (item.produit.id === produitId) {
-          const nouvelleQuantite = item.quantite + delta;
-          return nouvelleQuantite <= 0 
-            ? null 
-            : { ...item, quantite: nouvelleQuantite };
+          const nouvelleQuantite = Math.max(0, item.quantite + changement);
+          return nouvelleQuantite === 0 ? null : { ...item, quantite: nouvelleQuantite };
         }
         return item;
       }).filter(Boolean) as CartItem[]
@@ -305,12 +287,27 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     setShowExtraProduitModal(true);
   };
 
-    // Détecter si la commande contient des articles des deux commerces (commande mixte)
+  // Handler pour confirmer l'ajout d'un extra
+  const handleExtraConfirm = (nom: string, prix: number) => {
+    if (produitPourExtra) {
+      const produitIndex = panier.findIndex(item => item === produitPourExtra);
+      if (produitIndex !== -1) {
+        const newExtra: CartExtra = {
+          id: `extra-${Date.now()}-${Math.random()}`,
+          nom,
+          prix
+        };
+        ajouterExtraAuProduit(produitIndex, newExtra);
+      }
+      setProduitPourExtra(null);
+    }
+  };
+
+  // Vérifier si la commande contient des articles de plusieurs commerces
   const isCommandeMixte = () => {
-    const commerces = new Set();
+    const commerces = new Set<string>();
     panier.forEach(item => {
       const produit = item.produit;
-      
       if (produit.categorie_custom_id) {
         const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
         if (customCategory) {
@@ -367,38 +364,49 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     setIsLoading(true);
 
     try {
-      let clientId = null;
-
-      if (typeCommande === 'livraison' && clientInfo.nom.trim()) {
-        if (clientExistant) {
-          clientId = clientExistant.id;
-          if (typeCommande === 'livraison' && clientInfo.adresse !== clientExistant.adresse) {
-            await supabase
-              .from('clients')
-              .update({ adresse: clientInfo.adresse })
-              .eq('id', clientExistant.id);
+      // Déterminer le commerce principal
+      const commerceCounts = { dolce_italia: 0, '961_lsf': 0 };
+      
+      panier.forEach(item => {
+        const produit = item.produit;
+        if (produit.categorie_custom_id) {
+          const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
+          if (customCategory) {
+            commerceCounts[customCategory.commerce] += item.quantite;
           }
+        } else if (produit.commerce) {
+          commerceCounts[produit.commerce] += item.quantite;
         } else {
-          const { data: nouveauClient, error: clientError } = await supabase
-            .from('clients')
-            .insert({
-              nom: clientInfo.nom.trim(),
-              telephone: clientInfo.telephone.trim(),
-              adresse: clientInfo.adresse.trim()
-            })
-            .select()
-            .single();
-
-          if (clientError) throw clientError;
-          clientId = nouveauClient.id;
+          commerceCounts['dolce_italia'] += item.quantite;
         }
-      } else if (typeCommande !== 'livraison' && clientInfo.nom.trim()) {
+      });
+
+      const commerce_principal = commerceCounts.dolce_italia >= commerceCounts['961_lsf'] 
+        ? 'dolce_italia' 
+        : '961_lsf';
+
+      // Créer ou récupérer le client
+      let clientId = null;
+      if (clientExistant) {
+        clientId = clientExistant.id;
+        
+        // Mettre à jour les infos du client si nécessaire
+        if (typeCommande === 'livraison' && clientInfo.adresse.trim()) {
+          await supabase
+            .from('clients')
+            .update({ 
+              nom: clientInfo.nom.trim(),
+              adresse: clientInfo.adresse.trim() 
+            })
+            .eq('id', clientExistant.id);
+        }
+      } else if (clientInfo.nom.trim()) {
         const { data: nouveauClient, error: clientError } = await supabase
           .from('clients')
           .insert({
             nom: clientInfo.nom.trim(),
-            telephone: `client_${Date.now()}`,
-            adresse: null
+            telephone: clientInfo.telephone.trim(),
+            adresse: typeCommande === 'livraison' ? clientInfo.adresse.trim() || null : null
           })
           .select()
           .single();
@@ -407,30 +415,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         clientId = nouveauClient.id;
       }
 
-      // Déterminer le commerce principal en fonction des articles
-      const commerces = new Set();
-      panier.forEach(item => {
-        const produit = item.produit;
-        
-        // Utiliser directement le commerce du produit ou déterminé par sa catégorie personnalisée
-        if (produit.categorie_custom_id) {
-          // Produit avec catégorie personnalisée - récupérer le commerce de la catégorie
-          const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
-          if (customCategory) {
-            commerces.add(customCategory.commerce);
-          }
-        } else if (produit.commerce) {
-          // Produit avec commerce défini directement
-          commerces.add(produit.commerce);
-        } else {
-          // Fallback : par défaut dolce_italia
-          commerces.add('dolce_italia');
-        }
-      });
-      
-      // Si mixte, choisir en fonction de la majorité ou par défaut dolce_italia
-      const commerce_principal = commerces.has('dolce_italia') ? 'dolce_italia' : '961_lsf';
-
+      // Créer la commande
       const { data: commande, error: commandeError } = await supabase
         .from('commandes')
         .insert({
@@ -465,15 +450,24 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
       toast({
         title: "Commande créée !",
-        description: `Commande ${commande.numero_commande} créée avec succès`
+        description: `Commande n°${commande.numero_commande} créée avec succès`
       });
 
-      onClose();
-    } catch (error: any) {
+      // Réinitialiser le formulaire
+      setPanier([]);
+      setClientInfo({ nom: '', telephone: '', adresse: '' });
+      setClientExistant(null);
+      setNotesGenerales('');
+      setNotesDolceItalia('');
+      setNotes961LSF('');
+      setCurrentView('menu');
+
+    } catch (error) {
+      console.error('Erreur lors de la création de la commande:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de créer la commande: " + error.message
+        description: "Impossible de créer la commande"
       });
     } finally {
       setIsLoading(false);
@@ -500,7 +494,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     },
     '961_lsf': {
       name: '961 LSF',
-      color: 'bg-green-50 text-green-700 border-green-200',
+      color: 'bg-blue-50 text-blue-700 border-blue-200',
       categories: getCommerceCategories('961_lsf')
     }
   };
@@ -520,13 +514,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
         if (customCategory) {
           const categoryKey = customCategory.nom.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, '');
-          matchesCategory = categorieActive === categoryKey;
+          matchesCategory = categoryKey === categorieActive && customCategory.commerce === commerceActive;
         }
-      } else {
-        // Produit avec catégorie par défaut
-        matchesCategory = categorieActive === produit.categorie;
       }
-      
+
       // Vérifier si le produit correspond au terme de recherche
       const matchesSearch = searchTerm === '' || produit.nom.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -550,35 +541,23 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           <div className="flex items-center space-x-3">
             <h2 className="text-xl font-bold">Nouvelle commande</h2>
             <Badge variant="outline" className="hidden sm:inline-flex">
-              {currentView === 'menu' ? 'Menu' : 'Client'}
+              {typeCommande === 'sur_place' ? 'Sur place' : typeCommande === 'a_emporter' ? 'À emporter' : 'Livraison'}
             </Badge>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Navigation rapide */}
-        <div className="flex items-center justify-center pb-3">
-          <div className="flex items-center space-x-1 bg-muted rounded-full p-1">
-            <Button
-              variant={currentView === 'menu' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('menu')}
-              className="rounded-full px-4"
+          <div className="flex items-center space-x-2">
+            <Select 
+              value={typeCommande} 
+              onValueChange={(value: 'sur_place' | 'a_emporter' | 'livraison') => setTypeCommande(value)}
             >
-              Menu
-            </Button>
-            <Button
-              variant={currentView === 'client' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('client')}
-              disabled={!canProceedToClient()}
-              className="rounded-full px-4"
-            >
-              Client
-              {canProceedToClient() && <ChevronRight className="h-3 w-3 ml-1" />}
-            </Button>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sur_place">Sur place</SelectItem>
+                <SelectItem value="a_emporter">À emporter</SelectItem>
+                <SelectItem value="livraison">Livraison</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -587,67 +566,46 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       <div className="flex-1 overflow-hidden">
         {currentView === 'menu' && (
           <div className="h-full flex">
-            {/* Menu des produits */}
-            <div className="flex-1 flex flex-col min-h-0">
-              {/* Contrôles */}
-              <div className="flex-shrink-0 p-4 space-y-3 border-b">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Select value={typeCommande} onValueChange={(value: any) => setTypeCommande(value)}>
-                    <SelectTrigger className="w-full sm:w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="sur_place">Sur place</SelectItem>
-                      <SelectItem value="a_emporter">À emporter</SelectItem>
-                      <SelectItem value="livraison">Livraison</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher un produit..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+            {/* Menu principal */}
+            <div className="flex-1 flex flex-col">
+              {/* Sélection du commerce */}
+              <div className="flex-shrink-0 p-4 border-b bg-background">
+                <div className="flex space-x-2 mb-4">
+                  {Object.entries(commerces).map(([key, commerce]) => (
+                    <Button
+                      key={key}
+                      variant={commerceActive === key ? "default" : "outline"}
+                      onClick={() => {
+                        setCommerceActive(key as 'dolce_italia' | '961_lsf');
+                        setCategorieActive('');
+                      }}
+                      className={`${commerce.color} ${commerceActive === key ? 'ring-2 ring-primary/20' : ''}`}
+                    >
+                      {commerce.name}
+                    </Button>
+                  ))}
                 </div>
 
-                {/* Navigation des commerces */}
-                <div className="flex justify-center space-x-4 mb-3">
-                  <Button
-                    variant={commerceActive === 'dolce_italia' ? "default" : "outline"}
-                    onClick={() => {
-                      setCommerceActive('dolce_italia');
-                      setCategorieActive('pizzas');
-                    }}
-                    className="px-6"
-                  >
-                    Dolce Italia
-                  </Button>
-                  
-                  <Button
-                    variant={commerceActive === '961_lsf' ? "default" : "outline"}
-                    onClick={() => {
-                      setCommerceActive('961_lsf');
-                      setCategorieActive('entrees');
-                    }}
-                    className="px-6"
-                  >
-                    961 LSF
-                  </Button>
+                {/* Barre de recherche */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Rechercher un produit..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
 
-                {/* Catégories du commerce sélectionné */}
-                <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {commerces[commerceActive].categories.map(cat => (
+                {/* Catégories du commerce actif */}
+                <div className="flex flex-wrap gap-2">
+                  {commerces[commerceActive].categories.map((cat) => (
                     <Button
                       key={cat.key}
                       variant={categorieActive === cat.key ? "default" : "outline"}
-                      onClick={() => setCategorieActive(cat.key)}
-                      className="whitespace-nowrap min-w-0"
                       size="sm"
+                      onClick={() => setCategorieActive(cat.key)}
+                      className={`${cat.color} ${categorieActive === cat.key ? 'ring-2 ring-primary/20' : ''}`}
                     >
                       {cat.label}
                     </Button>
@@ -703,14 +661,13 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                                     </div>
                                   )}
                                   
-                                   <Button
-                                     onClick={() => handleProductClick(produit)}
-                                     size="sm"
-                                     className={isSelected ? 'bg-primary/80' : ''}
-                                   >
-                                     <Plus className="h-3 w-3 mr-1" />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleProduitClick(produit)}
+                                    className="whitespace-nowrap"
+                                  >
                                      {produit.est_extra ? 'Prix' : 'Ajouter'}
-                                   </Button>
+                                  </Button>
                                 </div>
                               </div>
                             </CardContent>
@@ -770,171 +727,92 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                         <p className="text-sm text-center">Ajoutez des produits à votre commande</p>
                       </div>
                     ) : (
-                       <div className="space-y-3">
-                         {panier.map((item, itemIndex) => (
-                           <Card key={`${item.produit.id}-${itemIndex}`} className="p-3">
-                             <div className="space-y-2">
-                               <div className="flex items-center justify-between">
-                                 <div className="flex-1 min-w-0">
-                                    <h5 className="text-sm font-medium truncate">
-                                      {item.nom_personnalise || formatProduitNom(item.produit.nom, item.produit.categorie)}
-                                      {item.produit.est_extra && (
-                                        <Badge variant="outline" className="ml-1 text-xs">
-                                          {item.nom_personnalise ? 'Personnalisé' : 'Extra'}
-                                        </Badge>
-                                      )}
-                                    </h5>
-                                    <p className="text-xs text-muted-foreground">
-                                      {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
-                                      {item.produit.est_extra && (item.prix_unitaire !== item.produit.prix || item.nom_personnalise) && (
-                                        <span className="text-blue-600 ml-1">(Personnalisé)</span>
-                                      )}
-                                    </p>
-                                 </div>
-                                 <div className="flex items-center space-x-1">
-                                   <Button
-                                     size="sm"
-                                     variant="outline"
-                                     onClick={() => modifierQuantite(item.produit.id, -1)}
-                                     className="h-6 w-6 p-0"
-                                   >
-                                     <Minus className="h-3 w-3" />
-                                   </Button>
-                                   <span className="text-sm w-6 text-center font-medium">{item.quantite}</span>
-                                   <Button
-                                     size="sm"
-                                     variant="outline"
-                                     onClick={() => modifierQuantite(item.produit.id, 1)}
-                                     className="h-6 w-6 p-0"
-                                   >
-                                     <Plus className="h-3 w-3" />
-                                   </Button>
-                                 </div>
-                               </div>
-                               
-                               {/* Affichage des extras */}
-                               {item.extras && item.extras.length > 0 && (
-                                 <div className="ml-2 space-y-1">
-                                   {item.extras.map((extra, extraIndex) => (
-                                     <div key={`${extra.id}-${extraIndex}`} className="flex items-center justify-between text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
-                                       <span>+ {extra.nom} ({extra.prix.toFixed(2)}€)</span>
-                                       <Button
-                                         size="sm"
-                                         variant="ghost"
-                                         onClick={() => supprimerExtraDuProduit(itemIndex, extraIndex)}
-                                         className="h-4 w-4 p-0 text-destructive hover:text-destructive"
-                                       >
-                                         <X className="h-2 w-2" />
-                                       </Button>
-                                     </div>
-                                   ))}
-                                 </div>
-                               )}
-                               
-                               {/* Bouton pour ajouter un extra */}
-                               {!item.produit.est_extra && (
-                                 <div className="flex justify-start">
-                                   <Button
-                                     size="sm"
-                                     variant="ghost"
-                                     onClick={() => ouvrirModalExtraProduit(item)}
-                                     className="h-6 text-xs text-blue-600 hover:text-blue-700 p-1"
-                                   >
-                                     <Plus className="h-3 w-3 mr-1" />
-                                     Ajouter extra
-                                   </Button>
-                                 </div>
-                               )}
-                               
-                               <div className="flex justify-end">
-                                 <p className="text-sm font-bold text-primary">
-                                   {((item.prix_unitaire || item.produit.prix) + (item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0) * item.quantite).toFixed(2)}€
-                                 </p>
-                               </div>
-                             </div>
-                           </Card>
-                         ))}
-                         {/* Instructions spéciales dans le panier */}
-                         <div className="pt-2 space-y-3">
-                           {!isCommandeMixte() ? (
-                             // Commande simple - une seule zone de commentaire
-                             <div>
-                               <Label className="text-sm font-medium flex items-center mb-2">
-                                 <MessageSquare className="h-4 w-4 mr-2" />
-                                 Instructions spéciales
-                               </Label>
-                               <Textarea
-                                 placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
-                                 value={notesGenerales}
-                                 onChange={(e) => setNotesGenerales(e.target.value)}
-                                 rows={2}
-                                 className="text-sm resize-none"
-                               />
-                             </div>
-                           ) : (
-                             // Commande mixte - commentaires séparés par commerce
-                             <div className="space-y-3">
-                               <div className="text-sm font-medium text-purple-600 mb-2">
-                                 📝 Commande mixte - Commentaires par préparateur
-                               </div>
-                               
-                               {hasCommerceItems('dolce_italia') && (
-                                 <div>
-                                   <Label className="text-sm font-medium flex items-center mb-2 text-red-600">
-                                     <MessageSquare className="h-4 w-4 mr-2" />
-                                     Notes pour Dolce Italia (Pizzas/Pâtes)
-                                   </Label>
-                                   <Textarea
-                                     placeholder="Ex: Pizza bien cuite, sans champignons..."
-                                     value={notesDolceItalia}
-                                     onChange={(e) => setNotesDolceItalia(e.target.value)}
-                                     rows={2}
-                                     className="text-sm resize-none border-red-200 focus:border-red-300"
-                                   />
-                                 </div>
-                               )}
-                               
-                               {hasCommerceItems('961_lsf') && (
-                                 <div>
-                                   <Label className="text-sm font-medium flex items-center mb-2 text-blue-600">
-                                     <MessageSquare className="h-4 w-4 mr-2" />
-                                     Notes pour 961 LSF (Sandwiches/Salades)
-                                   </Label>
-                                   <Textarea
-                                     placeholder="Ex: Sans sauce piquante, salade à part..."
-                                     value={notes961LSF}
-                                     onChange={(e) => setNotes961LSF(e.target.value)}
-                                     rows={2}
-                                     className="text-sm resize-none border-blue-200 focus:border-blue-300"
-                                   />
-                                 </div>
-                               )}
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     )}
-                   </div>
-                 </ScrollArea>
-               </div>
-
-               {panier.length > 0 && (
-                 <div className="flex-shrink-0 p-4 border-t bg-background">
-                   <Button
-                     onClick={() => setCurrentView('client')}
-                     className="w-full"
-                     size="lg"
-                   >
-                     Continuer
-                     <ChevronRight className="h-4 w-4 ml-2" />
-                   </Button>
-                 </div>
-               )}
-             </div>
-           </div>
-         )}
-
-         {currentView === 'client' && (
+                      <div className="space-y-3">
+                        {panier.map((item, itemIndex) => (
+                          <Card key={`${item.produit.id}-${itemIndex}`} className="p-3">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                   <h5 className="text-sm font-medium truncate">
+                                     {item.nom_personnalise || formatProduitNom(item.produit.nom, item.produit.categorie)}
+                                     {item.produit.est_extra && (
+                                       <Badge variant="outline" className="ml-1 text-xs">
+                                         {item.nom_personnalise ? 'Personnalisé' : 'Extra'}
+                                       </Badge>
+                                     )}
+                                   </h5>
+                                   <p className="text-xs text-muted-foreground">
+                                     {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
+                                     {item.produit.est_extra && (item.prix_unitaire !== item.produit.prix || item.nom_personnalise) && (
+                                       <span className="text-blue-600 ml-1">(Personnalisé)</span>
+                                     )}
+                                   </p>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => modifierQuantite(item.produit.id, -1)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                  <span className="text-sm w-6 text-center font-medium">{item.quantite}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => modifierQuantite(item.produit.id, 1)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              {/* Affichage des extras */}
+                              {item.extras && item.extras.length > 0 && (
+                                <div className="ml-2 space-y-1">
+                                  {item.extras.map((extra, extraIndex) => (
+                                    <div key={`${extra.id}-${extraIndex}`} className="flex items-center justify-between text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
+                                      <span>+ {extra.nom} ({extra.prix.toFixed(2)}€)</span>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => supprimerExtraDuProduit(itemIndex, extraIndex)}
+                                        className="h-4 w-4 p-0 text-destructive hover:text-destructive"
+                                      >
+                                        <X className="h-2 w-2" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Bouton pour ajouter un extra */}
+                              {!item.produit.est_extra && (
+                                <div className="flex justify-start">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => ouvrirModalExtraProduit(item)}
+                                    className="h-6 text-xs text-blue-600 hover:text-blue-700 p-1"
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Ajouter extra
+                                  </Button>
+                                </div>
+                              )}
+                              
+                              <div className="flex justify-end">
+                                <p className="text-sm font-bold text-primary">
+                                  {((item.prix_unitaire || item.produit.prix) + (item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0)) * item.quantite).toFixed(2)}€
+                                </p>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                        
+                        {/* Instructions spéciales dans le panier */}
                         <div className="pt-2 space-y-3">
                           {!isCommandeMixte() ? (
                             // Commande simple - une seule zone de commentaire
@@ -1121,6 +999,17 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         }}
         onConfirm={handlePrixExtraConfirm}
         articleNom={produitPourPrixExtra?.nom || ""}
+      />
+
+      {/* Modal pour ajouter un extra à un produit */}
+      <ExtraProduitModal
+        open={showExtraProduitModal}
+        onClose={() => {
+          setShowExtraProduitModal(false);
+          setProduitPourExtra(null);
+        }}
+        onConfirm={handleExtraConfirm}
+        produitNom={produitPourExtra?.nom_personnalise || produitPourExtra?.produit.nom || ""}
       />
     </div>
   );
