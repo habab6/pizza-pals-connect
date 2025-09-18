@@ -147,11 +147,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       if (editingProduct) {
         // Modifier un produit existant
         // Déterminer la catégorie et l'ID
-        const categorieData = formData.est_extra 
-          ? { categorie: 'extra' as const, categorie_custom_id: null }
-          : customCategories.find(cat => cat.id === formData.categorie)
-            ? { categorie: 'extra' as const, categorie_custom_id: formData.categorie }
-            : { categorie: formData.categorie as any, categorie_custom_id: null };
+        const categorieData = customCategories.find(cat => cat.id === formData.categorie)
+          ? { categorie: 'extra' as const, categorie_custom_id: formData.categorie }
+          : { categorie: formData.categorie as any, categorie_custom_id: null };
 
         const { error } = await supabase
           .from('produits')
@@ -173,11 +171,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       } else {
         // Ajouter un nouveau produit
         // Déterminer la catégorie et l'ID
-        const categorieData = formData.est_extra 
-          ? { categorie: 'extra' as const, categorie_custom_id: null }
-          : customCategories.find(cat => cat.id === formData.categorie)
-            ? { categorie: 'extra' as const, categorie_custom_id: formData.categorie }
-            : { categorie: formData.categorie as any, categorie_custom_id: null };
+        const categorieData = customCategories.find(cat => cat.id === formData.categorie)
+          ? { categorie: 'extra' as const, categorie_custom_id: formData.categorie }
+          : { categorie: formData.categorie as any, categorie_custom_id: null };
 
         const { error } = await supabase
           .from('produits')
