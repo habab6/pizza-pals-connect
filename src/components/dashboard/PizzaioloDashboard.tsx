@@ -129,10 +129,10 @@ const PizzaioloDashboard = () => {
   // Vérifier si une commande est mixte (contient des articles des deux commerces)
   const isCommandeMixte = (commande: any) => {
     const hasLSF = commande.commande_items?.some((item: any) => 
-      ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+      item.produits.commerce === '961_lsf'
     );
     const hasDolce = commande.commande_items?.some((item: any) => 
-      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+      item.produits.commerce === 'dolce_italia'
     );
     return hasLSF && hasDolce;
   };
@@ -140,7 +140,7 @@ const PizzaioloDashboard = () => {
   // Filtrer les articles Dolce Italia de la commande
   const getItemsDolce = (commande: any) => {
     return commande.commande_items?.filter((item: any) => 
-      ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+      item.produits.commerce === 'dolce_italia'
     ) || [];
   };
 

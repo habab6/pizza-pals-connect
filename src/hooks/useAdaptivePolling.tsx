@@ -179,13 +179,13 @@ export const useAdaptivePolling = ({
         // Filtrer seulement les commandes avec des articles 961 LSF
         processed = data.filter((commande: any) => 
           commande.commande_items?.some((item: any) => 
-            ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+            item.produits.commerce === '961_lsf'
           )
         );
         
         newCount = processed.filter((commande: any) => {
           const itemsLSF = commande.commande_items?.filter((item: any) => 
-            ['entrees', 'sandwiches', 'bowls_salades', 'frites'].includes(item.produits.categorie)
+            item.produits.commerce === '961_lsf'
           );
           const statutLSF = commande.statut_961_lsf || 'nouveau';
           return itemsLSF.length > 0 && statutLSF === 'nouveau';
@@ -196,13 +196,13 @@ export const useAdaptivePolling = ({
         // Filtrer seulement les commandes avec des articles Dolce Italia
         processed = data.filter((commande: any) => 
           commande.commande_items?.some((item: any) => 
-            ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+            item.produits.commerce === 'dolce_italia'
           )
         );
         
         newCount = processed.filter((commande: any) => {
           const itemsDolce = commande.commande_items?.filter((item: any) => 
-            ['pizzas', 'pates', 'desserts'].includes(item.produits.categorie)
+            item.produits.commerce === 'dolce_italia'
           );
           const statutDolce = commande.statut_dolce_italia || 'nouveau';
           return itemsDolce.length > 0 && statutDolce === 'nouveau';
