@@ -7,12 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 interface PrixExtraModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (prix: number) => void;
+  onConfirm: (nom: string, prix: number) => void;
   articleNom: string;
 }
 
 const PrixExtraModal = ({ open, onClose, onConfirm, articleNom }: PrixExtraModalProps) => {
   const [prix, setPrix] = useState('');
+  const [nomPersonnalise, setNomPersonnalise] = useState('');
   const [error, setError] = useState('');
 
   console.log('PrixExtraModal - open:', open, 'articleNom:', articleNom);
@@ -21,6 +22,11 @@ const PrixExtraModal = ({ open, onClose, onConfirm, articleNom }: PrixExtraModal
     e.preventDefault();
     
     const prixNumber = parseFloat(prix);
+    
+    if (!nomPersonnalise.trim()) {
+      setError('Le nom de l\'article est requis');
+      return;
+    }
     
     if (!prix.trim()) {
       setError('Le prix est requis');
@@ -32,14 +38,16 @@ const PrixExtraModal = ({ open, onClose, onConfirm, articleNom }: PrixExtraModal
       return;
     }
 
-    onConfirm(prixNumber);
+    onConfirm(nomPersonnalise.trim(), prixNumber);
     setPrix('');
+    setNomPersonnalise('');
     setError('');
     onClose();
   };
 
   const handleClose = () => {
     setPrix('');
+    setNomPersonnalise('');
     setError('');
     onClose();
   };
@@ -48,14 +56,29 @@ const PrixExtraModal = ({ open, onClose, onConfirm, articleNom }: PrixExtraModal
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Prix pour l'article extra</DialogTitle>
+          <DialogTitle>Article extra personnalisé</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Définissez le prix pour : <strong>{articleNom}</strong>
+              Personnalisez votre article extra
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nom">Nom de l'article</Label>
+            <Input
+              id="nom"
+              type="text"
+              value={nomPersonnalise}
+              onChange={(e) => {
+                setNomPersonnalise(e.target.value);
+                if (error) setError('');
+              }}
+              placeholder="Ex: Supplément fromage"
+              autoFocus
+            />
           </div>
 
           <div className="space-y-2">
@@ -71,7 +94,6 @@ const PrixExtraModal = ({ open, onClose, onConfirm, articleNom }: PrixExtraModal
                 if (error) setError('');
               }}
               placeholder="Ex: 5.50"
-              autoFocus
             />
             {error && (
               <p className="text-sm text-destructive">{error}</p>

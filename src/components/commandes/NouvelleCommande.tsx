@@ -27,6 +27,7 @@ interface CartItem {
   produit: Produit;
   quantite: number;
   prix_unitaire?: number; // Pour les articles extra avec prix personnalisé
+  nom_personnalise?: string; // Pour les articles extra avec nom personnalisé
 }
 
 interface Client {
@@ -114,12 +115,18 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
-  const ajouterAuPanier = (produit: Produit, prixPersonnalise?: number) => {
+  const ajouterAuPanier = (produit: Produit, prixPersonnalise?: number, nomPersonnalise?: string) => {
     setPanier(prev => {
-      const existant = prev.find(item => item.produit.id === produit.id);
+      const existant = prev.find(item => 
+        item.produit.id === produit.id && 
+        item.prix_unitaire === (prixPersonnalise || produit.prix) &&
+        item.nom_personnalise === nomPersonnalise
+      );
       if (existant) {
         return prev.map(item =>
-          item.produit.id === produit.id
+          item.produit.id === produit.id && 
+          item.prix_unitaire === (prixPersonnalise || produit.prix) &&
+          item.nom_personnalise === nomPersonnalise
             ? { ...item, quantite: item.quantite + 1 }
             : item
         );
@@ -127,7 +134,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       return [...prev, { 
         produit, 
         quantite: 1,
-        prix_unitaire: prixPersonnalise || produit.prix
+        prix_unitaire: prixPersonnalise || produit.prix,
+        nom_personnalise: nomPersonnalise
       }];
     });
   };
@@ -145,11 +153,11 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
-  const handlePrixExtraConfirm = (prix: number) => {
-    console.log('Prix confirmé:', prix, 'pour le produit:', produitPourPrixExtra?.nom);
+  const handlePrixExtraConfirm = (nom: string, prix: number) => {
+    console.log('Prix confirmé:', prix, 'nom:', nom, 'pour le produit:', produitPourPrixExtra?.nom);
     
     if (produitPourPrixExtra) {
-      ajouterAuPanier(produitPourPrixExtra, prix);
+      ajouterAuPanier(produitPourPrixExtra, prix, nom);
       setProduitPourPrixExtra(null);
     }
   };
@@ -615,18 +623,20 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <h5 className="text-sm font-medium truncate">
-                                    {formatProduitNom(item.produit.nom, item.produit.categorie)}
-                                    {item.produit.est_extra && (
-                                      <Badge variant="outline" className="ml-1 text-xs">Extra</Badge>
-                                    )}
-                                  </h5>
-                                  <p className="text-xs text-muted-foreground">
-                                    {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
-                                    {item.produit.est_extra && item.prix_unitaire !== item.produit.prix && (
-                                      <span className="text-blue-600 ml-1">(Prix personnalisé)</span>
-                                    )}
-                                  </p>
+                                   <h5 className="text-sm font-medium truncate">
+                                     {item.nom_personnalise || formatProduitNom(item.produit.nom, item.produit.categorie)}
+                                     {item.produit.est_extra && (
+                                       <Badge variant="outline" className="ml-1 text-xs">
+                                         {item.nom_personnalise ? 'Personnalisé' : 'Extra'}
+                                       </Badge>
+                                     )}
+                                   </h5>
+                                   <p className="text-xs text-muted-foreground">
+                                     {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
+                                     {item.produit.est_extra && (item.prix_unitaire !== item.produit.prix || item.nom_personnalise) && (
+                                       <span className="text-blue-600 ml-1">(Personnalisé)</span>
+                                     )}
+                                   </p>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                   <Button
