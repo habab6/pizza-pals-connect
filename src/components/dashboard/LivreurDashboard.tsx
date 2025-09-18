@@ -10,7 +10,7 @@ import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getDisplayName } from "@/utils/displayUtils";
+import { getDisplayNameForPreparateur } from "@/utils/displayUtils";
 
 interface Commande {
   id: string;
@@ -293,7 +293,7 @@ const LivreurDashboard = () => {
                        {commande.commande_items.map((item, index) => (
                          <div key={index} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
                              <div className="flex-1">
-                               <span>{item.quantite}x {getDisplayName(item)}</span>
+                               <span>{item.quantite}x {getDisplayNameForPreparateur(item)}</span>
                                {item.prix_unitaire !== item.produits.prix && (
                                  <Badge variant="outline" className="ml-2 text-xs text-blue-600">
                                    Extra ({item.prix_unitaire.toFixed(2)}€)
@@ -383,7 +383,7 @@ const LivreurDashboard = () => {
                         {commande.commande_items.slice(0, 2).map((item, index) => (
                           <div key={index} className="flex justify-between items-center text-sm">
                              <span>
-                               {item.quantite}x {getDisplayName(item)}
+                               {item.quantite}x {getDisplayNameForPreparateur(item)}
                                {item.prix_unitaire !== item.produits.prix && (
                                  <Badge variant="outline" className="ml-1 text-xs text-blue-600">Extra</Badge>
                                )}

@@ -379,7 +379,7 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                                <div className="ml-2">
                                  {extras.map((extra, extraIndex) => (
                                    <p key={extraIndex} className="text-xs text-blue-600">
-                                     + {extra.nom}: {extra.prix.toFixed(2)}€
+                                     + {extra.nom}
                                    </p>
                                  ))}
                                </div>
