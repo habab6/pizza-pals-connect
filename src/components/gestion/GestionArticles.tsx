@@ -146,15 +146,21 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     try {
       if (editingProduct) {
         // Modifier un produit existant
+        // Déterminer la catégorie et l'ID
+        const categorieData = formData.est_extra 
+          ? { categorie: 'extra' as const, categorie_custom_id: null }
+          : customCategories.find(cat => cat.id === formData.categorie)
+            ? { categorie: 'extra' as const, categorie_custom_id: formData.categorie }
+            : { categorie: formData.categorie as any, categorie_custom_id: null };
+
         const { error } = await supabase
           .from('produits')
           .update({
             nom: formData.nom.trim(),
-            categorie: 'extra', // Toujours 'extra' pour les catégories créées
+            ...categorieData,
             commerce: formData.commerce as any,
             prix: prix,
-            est_extra: formData.est_extra,
-            categorie_custom_id: formData.est_extra ? null : formData.categorie // L'ID de la catégorie sélectionnée
+            est_extra: formData.est_extra
           })
           .eq('id', editingProduct.id);
 
@@ -166,16 +172,22 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
         });
       } else {
         // Ajouter un nouveau produit
+        // Déterminer la catégorie et l'ID
+        const categorieData = formData.est_extra 
+          ? { categorie: 'extra' as const, categorie_custom_id: null }
+          : customCategories.find(cat => cat.id === formData.categorie)
+            ? { categorie: 'extra' as const, categorie_custom_id: formData.categorie }
+            : { categorie: formData.categorie as any, categorie_custom_id: null };
+
         const { error } = await supabase
           .from('produits')
           .insert({
             nom: formData.nom.trim(),
-            categorie: 'extra', // Toujours 'extra' pour les catégories créées
+            ...categorieData,
             commerce: formData.commerce as any,
             prix: prix,
             disponible: true,
-            est_extra: formData.est_extra,
-            categorie_custom_id: formData.est_extra ? null : formData.categorie // L'ID de la catégorie sélectionnée
+            est_extra: formData.est_extra
           });
 
         if (error) throw error;
