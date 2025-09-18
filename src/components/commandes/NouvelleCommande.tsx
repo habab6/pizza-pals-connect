@@ -57,7 +57,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [notesGenerales, setNotesGenerales] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentView, setCurrentView] = useState<'menu' | 'client'>('menu');
-  const [categorieActive, setCategorieActive] = useState<string>('pizzas');
+  const [categorieActive, setCategorieActive] = useState<string>('');
   const [commerceActive, setCommerceActive] = useState<'dolce_italia' | '961_lsf'>('dolce_italia');
   const [showPrixExtraModal, setShowPrixExtraModal] = useState(false);
   const [produitPourPrixExtra, setProduitPourPrixExtra] = useState<Produit | null>(null);
@@ -104,6 +104,24 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       supabase.removeChannel(categoriesChannel);
     };
   }, []);
+
+  // Effet pour sélectionner automatiquement la première catégorie disponible
+  useEffect(() => {
+    if (categoriesDb.length > 0 && !categorieActive) {
+      const categories = getCommerceCategories(commerceActive);
+      if (categories.length > 0) {
+        setCategorieActive(categories[0].key);
+      }
+    }
+  }, [categoriesDb, commerceActive, categorieActive]);
+
+  // Effet pour changer de catégorie quand le commerce change
+  useEffect(() => {
+    const categories = getCommerceCategories(commerceActive);
+    if (categories.length > 0) {
+      setCategorieActive(categories[0].key);
+    }
+  }, [commerceActive, categoriesDb]);
 
   const fetchProduits = async () => {
     try {
@@ -318,13 +336,20 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       // Déterminer le commerce principal en fonction des articles
       const commerces = new Set();
       panier.forEach(item => {
-        const categorie = item.produit.categorie;
-        if (['pizzas', 'pates', 'desserts'].includes(categorie) || item.produit.est_extra) {
-          commerces.add('dolce_italia');
-        } else if (['sandwiches', 'entrees', 'bowls_salades', 'frites'].includes(categorie)) {
-          commerces.add('961_lsf');
+        const produit = item.produit;
+        
+        // Utiliser directement le commerce du produit ou déterminé par sa catégorie personnalisée
+        if (produit.categorie_custom_id) {
+          // Produit avec catégorie personnalisée - récupérer le commerce de la catégorie
+          const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
+          if (customCategory) {
+            commerces.add(customCategory.commerce);
+          }
+        } else if (produit.commerce) {
+          // Produit avec commerce défini directement
+          commerces.add(produit.commerce);
         } else {
-          // Boissons peuvent appartenir aux deux
+          // Fallback : par défaut dolce_italia
           commerces.add('dolce_italia');
         }
       });
@@ -380,25 +405,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const getCommerceCategories = (commerce: 'dolce_italia' | '961_lsf') => {
-    const defaultCategories = [
-      // Catégories par défaut pour chaque commerce
-      ...(commerce === 'dolce_italia' ? [
-        { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
-        { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-        { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-      ] : [
-        { key: 'entrees', label: 'Entrées', color: 'bg-green-50 text-green-700 border-green-200' },
-        { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-        { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-      ]),
-      // Boissons pour les deux
-      { key: 'boissons', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-      // Extra pour les deux
-      { key: 'extra', label: 'Extra', color: 'bg-gray-50 text-gray-700 border-gray-200' }
-    ];
-
-    // Ajouter les catégories personnalisées depuis la base de données
-    const customCategories = categoriesDb
+    // Retourner UNIQUEMENT les catégories personnalisées depuis la base de données
+    return categoriesDb
       .filter(cat => cat.commerce === commerce)
       .map(cat => ({
         key: cat.nom.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, ''),
@@ -406,8 +414,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         color: 'bg-purple-50 text-purple-700 border-purple-200',
         isCustom: true
       }));
-
-    return [...defaultCategories, ...customCategories];
   };
 
   const commerces = {
@@ -428,18 +434,28 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const getFilteredProducts = () => {
-    let filteredCategory = categorieActive;
-    
-    // Gestion spéciale des boissons par commerce
-    if (categorieActive === 'boissons_dolce') {
-      filteredCategory = 'boissons';
-    } else if (categorieActive === 'boissons_lsf') {
-      filteredCategory = 'boissons';
-    }
-    
-    return produits
-      .filter(p => p.categorie === filteredCategory)
-      .filter(p => searchTerm === '' || p.nom.toLowerCase().includes(searchTerm.toLowerCase()));
+    // Filtrer les produits selon la catégorie active et le terme de recherche
+    return produits.filter(produit => {
+      // Vérifier si le produit correspond à la catégorie active
+      let matchesCategory = false;
+      
+      if (produit.categorie_custom_id) {
+        // Produit avec catégorie personnalisée
+        const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
+        if (customCategory) {
+          const categoryKey = customCategory.nom.toLowerCase().replace(/\s+/g, '_').replace(/[&]/g, '');
+          matchesCategory = categorieActive === categoryKey;
+        }
+      } else {
+        // Produit avec catégorie par défaut
+        matchesCategory = categorieActive === produit.categorie;
+      }
+      
+      // Vérifier si le produit correspond au terme de recherche
+      const matchesSearch = searchTerm === '' || produit.nom.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesCategory && matchesSearch;
+    });
   };
 
   const canValidateOrder = () => {
