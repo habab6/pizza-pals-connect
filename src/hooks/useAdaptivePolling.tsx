@@ -133,6 +133,7 @@ export const useAdaptivePolling = ({
       commande_items (
         quantite,
         prix_unitaire,
+        remarque,
         produits (nom, categorie, commerce, prix, est_extra, categorie_custom_id,
           categories (nom)
         )

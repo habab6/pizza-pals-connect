@@ -8,6 +8,7 @@ import { Clock, User, Phone, MapPin, Receipt, Package, Trash2, AlertTriangle } f
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatProduitNom } from "@/utils/formatters";
+import { getDisplayName } from "@/utils/displayUtils";
 
 interface CommandeDetailsModalProps {
   commandeId: string | null;
@@ -333,9 +334,9 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                      <div className="flex justify-between items-start mb-2">
                        <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium">
-                              {formatProduitNom(item.produits.nom, item.produits.categorie)}
-                            </h4>
+                             <h4 className="font-medium">
+                               {getDisplayName(item)}
+                             </h4>
                              <Badge variant="secondary" className="text-xs">
                                {getRealCategoryName(item)}
                              </Badge>
@@ -355,15 +356,8 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                           {(item.prix_unitaire * item.quantite).toFixed(2)}€
                         </p>
                       </div>
-                    </div>
-                    {item.remarque && (
-                      <div className="mt-2 p-2 bg-yellow-50 rounded">
-                        <p className="text-sm text-yellow-800">
-                          <strong>Remarque:</strong> {item.remarque}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                     </div>
+                   </div>
                 ))}
                 
                 <Separator />

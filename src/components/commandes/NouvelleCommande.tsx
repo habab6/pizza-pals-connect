@@ -378,7 +378,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         produit_id: item.produit.id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire || item.produit.prix,
-        remarque: null
+        remarque: item.nom_personnalise || null
       }));
 
       const { error: itemsError } = await supabase

@@ -10,6 +10,7 @@ import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getDisplayName } from "@/utils/displayUtils";
 
 interface Commande {
   id: string;
@@ -283,14 +284,14 @@ const LivreurDashboard = () => {
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                        {commande.commande_items.map((item, index) => (
                          <div key={index} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
-                            <div className="flex-1">
-                              <span>{item.quantite}x {item.produits.nom}</span>
-                              {item.prix_unitaire !== item.produits.prix && (
-                                <Badge variant="outline" className="ml-2 text-xs text-blue-600">
-                                  Extra ({item.prix_unitaire.toFixed(2)}€)
-                                </Badge>
-                              )}
-                            </div>
+                             <div className="flex-1">
+                               <span>{item.quantite}x {getDisplayName(item)}</span>
+                               {item.prix_unitaire !== item.produits.prix && (
+                                 <Badge variant="outline" className="ml-2 text-xs text-blue-600">
+                                   Extra ({item.prix_unitaire.toFixed(2)}€)
+                                 </Badge>
+                               )}
+                             </div>
                             <Badge variant="outline" className="text-xs">
                               {getRealCategoryName(item)}
                             </Badge>
@@ -373,12 +374,12 @@ const LivreurDashboard = () => {
                      <div className="space-y-1">
                         {commande.commande_items.slice(0, 2).map((item, index) => (
                           <div key={index} className="flex justify-between items-center text-sm">
-                            <span>
-                              {item.quantite}x {item.produits.nom}
-                              {item.prix_unitaire !== item.produits.prix && (
-                                <Badge variant="outline" className="ml-1 text-xs text-blue-600">Extra</Badge>
-                              )}
-                            </span>
+                             <span>
+                               {item.quantite}x {getDisplayName(item)}
+                               {item.prix_unitaire !== item.produits.prix && (
+                                 <Badge variant="outline" className="ml-1 text-xs text-blue-600">Extra</Badge>
+                               )}
+                             </span>
                              <Badge variant="outline" className="text-xs">
                                {getRealCategoryName(item)}
                              </Badge>

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdaptivePolling } from "@/hooks/useAdaptivePolling";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
+import { getDisplayName } from "@/utils/displayUtils";
 
 interface Commande {
   id: string;
@@ -267,9 +268,9 @@ const PizzaioloDashboard = () => {
                     <div className="space-y-1">
                        {itemsDolce.map((item: any, index: number) => (
                          <div key={index} className="flex justify-between items-center text-sm">
-                           <div className="flex-1">
-                             <span>{item.quantite}x {item.produits.nom}</span>
-                           </div>
+                            <div className="flex-1">
+                              <span>{item.quantite}x {getDisplayName(item)}</span>
+                            </div>
                             <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
                               {getRealCategoryName(item)}
                             </Badge>
