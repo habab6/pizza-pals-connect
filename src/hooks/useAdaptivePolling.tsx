@@ -154,7 +154,9 @@ export const useAdaptivePolling = ({
       case 'livreur':
         return {
           select: baseSelect,
-          filters: (query: any) => query.or('statut.eq.pret,statut.eq.en_livraison').eq('type_commande', 'livraison')
+          filters: (query: any) => query
+            .or('statut.eq.pret,statut.eq.en_livraison,statut_dolce_italia.eq.pret,statut_961_lsf.eq.pret')
+            .eq('type_commande', 'livraison')
         };
       case 'caissier':
         return {
@@ -212,7 +214,11 @@ export const useAdaptivePolling = ({
         break;
 
       case 'livreur':
-        processed = data.filter(c => c.statut === 'pret');
+        processed = data.filter(c => 
+          c.statut === 'pret' || 
+          c.statut_dolce_italia === 'pret' || 
+          c.statut_961_lsf === 'pret'
+        );
         livraisons = data.filter(c => c.statut === 'en_livraison');
         newCount = processed.length;
         break;
