@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, User, Phone, MapPin, Receipt, Package, Trash2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { formatProduitNom } from "@/utils/formatters";
-import { getDisplayName } from "@/utils/displayUtils";
+import { getDisplayNameForPreparateur } from "@/utils/displayUtils";
 
 interface CommandeDetailsModalProps {
   commandeId: string | null;
@@ -334,22 +333,37 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                   const parseExtras = (remarque: string | null) => {
                     if (!remarque) return { customName: null, extras: [] };
                     
-                    const parts = remarque.split('|EXTRAS:');
-                    const customName = parts.length > 1 ? (parts[0] || null) : remarque;
+                    const trimmed = remarque.trim();
                     
-                    if (parts.length > 1) {
-                      const extrasString = parts[1];
-                      const extras = extrasString.split(',').map(extraStr => {
-                        const match = extraStr.match(/\+(.+)\((.+)€\)/);
-                        if (match) {
-                          return { nom: match[1], prix: parseFloat(match[2]) };
-                        }
-                        return null;
-                      }).filter(Boolean);
+                    if (trimmed.includes('EXTRAS:')) {
+                      let customName: string | null = null;
+                      let extrasString = '';
+                      
+                      if (trimmed.startsWith('EXTRAS:')) {
+                        // Cas où il n'y a que des extras (pas de nom personnalisé)
+                        extrasString = trimmed.substring(7);
+                      } else {
+                        // Cas où il y a un nom personnalisé ET des extras
+                        const parts = trimmed.split('|EXTRAS:');
+                        customName = parts[0] || null;
+                        extrasString = parts[1] || '';
+                      }
+                      
+                      const extras = extrasString
+                        ? extrasString.split(',').map(extraStr => {
+                            const match = extraStr.match(/\+(.+)\((.+)€\)/);
+                            if (match) {
+                              return { nom: match[1], prix: parseFloat(match[2]) };
+                            }
+                            return null;
+                          }).filter(Boolean) as { nom: string; prix: number }[]
+                        : [];
+                      
                       return { customName, extras };
                     }
                     
-                    return { customName, extras: [] };
+                    // Pas d'extras, toute la remarque est un nom personnalisé
+                    return { customName: trimmed, extras: [] };
                   };
                   
                   const { customName, extras } = parseExtras(item.remarque);
@@ -362,7 +376,7 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                          <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
                                <h4 className="font-medium">
-                                 {customName || item.produits.nom}
+                                 {getDisplayNameForPreparateur(item)}
                                </h4>
                                <Badge variant="secondary" className="text-xs">
                                  {getRealCategoryName(item)}
