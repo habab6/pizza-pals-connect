@@ -183,18 +183,17 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
     
     if (parts.length >= 3) {
       const seconds = parts[2].substring(0, 2);
-      const lastTwoDigits = seconds.substring(seconds.length - 2);
-      const firstDigits = seconds.substring(0, seconds.length - 2);
       
       return (
         <span className="relative">
-          {parts[0]}:{parts[1]}:{firstDigits}
+          {parts[0]}:{parts[1]}
           <span 
             className="relative cursor-pointer"
             onClick={() => setShowDeleteConfirm(true)}
           >
-            {lastTwoDigits}
+            :
           </span>
+          {seconds}
         </span>
       );
     }
