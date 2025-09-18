@@ -307,11 +307,11 @@ const PizzaioloDashboard = () => {
                 )}
 
                 {/* Notes */}
-                {commande.notes && (
+                {(commande.notes_dolce_italia || commande.notes) && (
                   <div>
                     <h4 className="font-medium text-sm mb-1">Notes:</h4>
                     <p className="text-sm text-gray-600 bg-yellow-50 p-2 rounded">
-                      {commande.notes}
+                      {commande.notes_dolce_italia || commande.notes}
                     </p>
                   </div>
                 )}

@@ -55,6 +55,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [clientExistant, setClientExistant] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [notesGenerales, setNotesGenerales] = useState('');
+  const [notesDolceItalia, setNotesDolceItalia] = useState('');
+  const [notes961LSF, setNotes961LSF] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentView, setCurrentView] = useState<'menu' | 'client'>('menu');
   const [categorieActive, setCategorieActive] = useState<string>('');
@@ -260,6 +262,31 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     return item ? item.quantite : 0;
   };
 
+    // Détecter si la commande contient des articles des deux commerces (commande mixte)
+  const isCommandeMixte = () => {
+    const commerces = new Set();
+    panier.forEach(item => {
+      const produit = item.produit;
+      
+      if (produit.categorie_custom_id) {
+        const customCategory = categoriesDb.find(cat => cat.id === produit.categorie_custom_id);
+        if (customCategory) {
+          commerces.add(customCategory.commerce);
+        }
+      } else if (produit.commerce) {
+        commerces.add(produit.commerce);
+      } else {
+        commerces.add('dolce_italia');
+      }
+    });
+    
+    return commerces.has('dolce_italia') && commerces.has('961_lsf');
+  };
+
+  // Vérifier si la commande contient des articles d'un commerce spécifique
+  const hasCommerceItems = (commerce: 'dolce_italia' | '961_lsf') => {
+    return panier.some(item => {
+      const produit = item.produit;
   const validerCommande = async () => {
     if (panier.length === 0) {
       toast({
@@ -364,7 +391,9 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           client_id: clientId,
           caissier_id: null,
           total: calculerTotal(),
-          notes: notesGenerales.trim() || null,
+          notes: !isCommandeMixte() ? notesGenerales.trim() || null : null,
+          notes_dolce_italia: isCommandeMixte() || hasCommerceItems('dolce_italia') ? notesDolceItalia.trim() || null : null,
+          notes_961_lsf: isCommandeMixte() || hasCommerceItems('961_lsf') ? notes961LSF.trim() || null : null,
           numero_commande: `CMD${Date.now()}`,
           commerce_principal: commerce_principal
         })
@@ -746,18 +775,62 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                         ))}
                         
                         {/* Instructions spéciales dans le panier */}
-                        <div className="pt-2">
-                          <Label className="text-sm font-medium flex items-center mb-2">
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Instructions spéciales
-                          </Label>
-                          <Textarea
-                            placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
-                            value={notesGenerales}
-                            onChange={(e) => setNotesGenerales(e.target.value)}
-                            rows={2}
-                            className="text-sm resize-none"
-                          />
+                        <div className="pt-2 space-y-3">
+                          {!isCommandeMixte() ? (
+                            // Commande simple - une seule zone de commentaire
+                            <div>
+                              <Label className="text-sm font-medium flex items-center mb-2">
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Instructions spéciales
+                              </Label>
+                              <Textarea
+                                placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
+                                value={notesGenerales}
+                                onChange={(e) => setNotesGenerales(e.target.value)}
+                                rows={2}
+                                className="text-sm resize-none"
+                              />
+                            </div>
+                          ) : (
+                            // Commande mixte - commentaires séparés par commerce
+                            <div className="space-y-3">
+                              <div className="text-sm font-medium text-purple-600 mb-2">
+                                📝 Commande mixte - Commentaires par préparateur
+                              </div>
+                              
+                              {hasCommerceItems('dolce_italia') && (
+                                <div>
+                                  <Label className="text-sm font-medium flex items-center mb-2 text-red-600">
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Notes pour Dolce Italia (Pizzas/Pâtes)
+                                  </Label>
+                                  <Textarea
+                                    placeholder="Ex: Pizza bien cuite, sans champignons..."
+                                    value={notesDolceItalia}
+                                    onChange={(e) => setNotesDolceItalia(e.target.value)}
+                                    rows={2}
+                                    className="text-sm resize-none border-red-200 focus:border-red-300"
+                                  />
+                                </div>
+                              )}
+                              
+                              {hasCommerceItems('961_lsf') && (
+                                <div>
+                                  <Label className="text-sm font-medium flex items-center mb-2 text-blue-600">
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Notes pour 961 LSF (Sandwiches/Salades)
+                                  </Label>
+                                  <Textarea
+                                    placeholder="Ex: Sans sauce piquante, salade à part..."
+                                    value={notes961LSF}
+                                    onChange={(e) => setNotes961LSF(e.target.value)}
+                                    rows={2}
+                                    className="text-sm resize-none border-blue-200 focus:border-blue-300"
+                                  />
+                                 </div>
+                               )}
+                             </div>
+                           )}
                         </div>
                       </div>
                     )}
@@ -887,7 +960,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           setProduitPourPrixExtra(null);
         }}
         onConfirm={handlePrixExtraConfirm}
-        articleNom={produitPourPrixExtra?.nom || ''}
+        articleNom={produitPourPrixExtra?.nom || ""}
       />
     </div>
   );

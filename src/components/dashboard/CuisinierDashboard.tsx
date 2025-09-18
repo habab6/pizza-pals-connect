@@ -326,11 +326,11 @@ const CuisinierDashboard = () => {
                      )}
 
                      {/* Notes */}
-                     {commande.notes && (
-                      <div className="bg-yellow-50 p-2 rounded">
-                        <p className="text-sm"><strong>Notes:</strong> {commande.notes}</p>
-                      </div>
-                    )}
+                     {(commande.notes_961_lsf || commande.notes) && (
+                       <div className="bg-yellow-50 p-2 rounded">
+                         <p className="text-sm"><strong>Notes:</strong> {commande.notes_961_lsf || commande.notes}</p>
+                       </div>
+                     )}
 
                     {/* Temps et actions */}
                     <div className="space-y-2">

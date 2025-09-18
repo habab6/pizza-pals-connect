@@ -123,6 +123,8 @@ export type Database = {
           livreur_id: string | null
           mode_paiement: Database["public"]["Enums"]["payment_method"] | null
           notes: string | null
+          notes_961_lsf: string | null
+          notes_dolce_italia: string | null
           numero_commande: string
           pizzaiolo_id: string | null
           statut: Database["public"]["Enums"]["order_status"]
@@ -143,6 +145,8 @@ export type Database = {
           livreur_id?: string | null
           mode_paiement?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
+          notes_961_lsf?: string | null
+          notes_dolce_italia?: string | null
           numero_commande: string
           pizzaiolo_id?: string | null
           statut?: Database["public"]["Enums"]["order_status"]
@@ -163,6 +167,8 @@ export type Database = {
           livreur_id?: string | null
           mode_paiement?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
+          notes_961_lsf?: string | null
+          notes_dolce_italia?: string | null
           numero_commande?: string
           pizzaiolo_id?: string | null
           statut?: Database["public"]["Enums"]["order_status"]
