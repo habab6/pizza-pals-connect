@@ -71,17 +71,22 @@ const CaissierDashboard = () => {
 
     // Si c'est une commande mixte
     if (hasDolce && hasLSF) {
-      // Si les deux commerces sont terminés -> pret
-      if (statutDolce === 'pret' && statutLSF === 'pret') return 'pret';
       // Si au moins un commerce est en préparation -> en_preparation
       if (statutDolce === 'en_preparation' || statutLSF === 'en_preparation') return 'en_preparation';
+      
+      // Si les deux commerces sont prêts -> pret
+      if (statutDolce === 'pret' && statutLSF === 'pret') return 'pret';
+      
+      // Si au moins un commerce est prêt (mais pas l'autre) -> en_preparation
+      if (statutDolce === 'pret' || statutLSF === 'pret') return 'en_preparation';
+      
       // Sinon -> nouveau
       return 'nouveau';
     }
     
     // Commande d'un seul commerce
-    if (hasDolce) return statutDolce;
-    if (hasLSF) return statutLSF;
+    if (hasDolce && !hasLSF) return statutDolce;
+    if (hasLSF && !hasDolce) return statutLSF;
     
     // Fallback sur le statut global
     return statutGlobal;
