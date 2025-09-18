@@ -22,13 +22,22 @@ export const getDisplayNameForPreparateur = (item: any): string => {
   
   const remarque = item.remarque.trim();
   
-  // Si la remarque contient des extras, les traiter
+  // Si la remarque contient des extras
   if (remarque.includes('EXTRAS:')) {
-    const parts = remarque.split('|EXTRAS:');
-    const customName = parts.length > 1 ? parts[0] : '';
+    let customName = '';
+    let extrasString = '';
     
-    if (parts.length > 1) {
-      const extrasString = parts[1];
+    if (remarque.startsWith('EXTRAS:')) {
+      // Cas où il n'y a que des extras (pas de nom personnalisé)
+      extrasString = remarque.substring(7); // Enlever "EXTRAS:"
+    } else {
+      // Cas où il y a un nom personnalisé ET des extras
+      const parts = remarque.split('|EXTRAS:');
+      customName = parts[0] || '';
+      extrasString = parts[1] || '';
+    }
+    
+    if (extrasString) {
       // Extraire les noms des extras sans les prix
       const extrasNames = extrasString.split(',').map(extraStr => {
         const match = extraStr.match(/\+(.+)\((.+)€\)/);
