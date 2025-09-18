@@ -401,11 +401,16 @@ const NouvelleCommande = () => {
             .eq('id', clientExistant.id);
         }
       } else if (clientInfo.nom.trim()) {
+        // Générer un téléphone temporaire pour les commandes sur place et à emporter
+        const telephoneValue = typeCommande === 'livraison' 
+          ? clientInfo.telephone.trim() 
+          : `client_${Date.now()}`;
+          
         const { data: nouveauClient, error: clientError } = await supabase
           .from('clients')
           .insert({
             nom: clientInfo.nom.trim(),
-            telephone: clientInfo.telephone.trim(),
+            telephone: telephoneValue,
             adresse: typeCommande === 'livraison' ? clientInfo.adresse.trim() || null : null
           })
           .select()
