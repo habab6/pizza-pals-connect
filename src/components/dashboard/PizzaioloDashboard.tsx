@@ -28,6 +28,10 @@ interface Commande {
       nom: string;
       categorie: string;
       commerce?: 'dolce_italia' | '961_lsf';
+      categorie_custom_id?: string;
+      categories?: {
+        nom: string;
+      };
     };
   }>;
 }
@@ -36,6 +40,11 @@ const PizzaioloDashboard = () => {
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
+
+  // Fonction pour obtenir le vrai nom de la catégorie
+  const getRealCategoryName = (item: any) => {
+    return item.produits?.categories?.nom || item.produits?.categorie || 'Autre';
+  };
 
   // Hook adaptatif intelligent 🧠
   const { commandes, isLoading, forceRefresh, debugInfo } = useAdaptivePolling({
@@ -55,7 +64,9 @@ const PizzaioloDashboard = () => {
           clients (nom, telephone, adresse),
           commande_items (
             quantite,
-            produits (nom, categorie)
+            produits (nom, categorie, categorie_custom_id,
+              categories (nom)
+            )
           )
         `)
         .eq('id', commandeId)
@@ -262,9 +273,9 @@ const PizzaioloDashboard = () => {
                            <div className="flex-1">
                              <span>{item.quantite}x {item.produits.nom}</span>
                            </div>
-                           <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
-                             {item.produits.categorie}
-                           </Badge>
+                            <Badge variant="outline" className="text-xs bg-red-50 text-red-700">
+                              {getRealCategoryName(item)}
+                            </Badge>
                          </div>
                        ))}
                     </div>

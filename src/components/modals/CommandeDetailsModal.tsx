@@ -39,6 +39,10 @@ interface CommandeDetail {
       nom: string;
       categorie: string;
       prix: number;
+      categorie_custom_id?: string;
+      categories?: {
+        nom: string;
+      };
     };
   }>;
 }
@@ -49,6 +53,11 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+
+  // Fonction pour obtenir le vrai nom de la catégorie
+  const getRealCategoryName = (item: any) => {
+    return item.produits?.categories?.nom || item.produits?.categorie || 'Autre';
+  };
 
   useEffect(() => {
     if (commandeId && isOpen) {
@@ -78,7 +87,9 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
             produits (
               nom,
               categorie,
-              prix
+              prix,
+              categorie_custom_id,
+              categories (nom)
             )
           )
         `)
@@ -325,9 +336,9 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                             <h4 className="font-medium">
                               {formatProduitNom(item.produits.nom, item.produits.categorie)}
                             </h4>
-                            <Badge variant="secondary" className="text-xs">
-                              {item.produits.categorie}
-                            </Badge>
+                             <Badge variant="secondary" className="text-xs">
+                               {getRealCategoryName(item)}
+                             </Badge>
                             {item.prix_unitaire !== item.produits.prix && (
                               <Badge variant="outline" className="text-xs text-blue-600">
                                 Extra

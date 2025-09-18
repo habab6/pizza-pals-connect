@@ -34,6 +34,10 @@ interface Commande {
       categorie: string;
       prix: number;
       est_extra: boolean;
+      categorie_custom_id?: string;
+      categories?: {
+        nom: string;
+      };
     };
   }>;
 }
@@ -45,6 +49,11 @@ const LivreurDashboard = () => {
   const [commandeToDeliver, setCommandeToDeliver] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const { toast } = useToast();
+
+  // Fonction pour obtenir le vrai nom de la catégorie
+  const getRealCategoryName = (item: any) => {
+    return item.produits?.categories?.nom || item.produits?.categorie || 'Autre';
+  };
 
   // Hook adaptatif intelligent 🧠  
   const { commandes, mesLivraisons, isLoading, forceRefresh, debugInfo } = useAdaptivePolling({
@@ -166,7 +175,9 @@ const LivreurDashboard = () => {
           commande_items (
             quantite,
             prix_unitaire,
-            produits (nom, categorie, prix, est_extra)
+            produits (nom, categorie, prix, est_extra, categorie_custom_id,
+              categories (nom)
+            )
           )
         `)
         .eq('id', commandeId)
@@ -283,9 +294,9 @@ const LivreurDashboard = () => {
                                 </Badge>
                               )}
                             </div>
-                           <Badge variant="outline" className="text-xs">
-                             {item.produits.categorie}
-                           </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {getRealCategoryName(item)}
+                            </Badge>
                          </div>
                        ))}
                     </div>
@@ -371,9 +382,9 @@ const LivreurDashboard = () => {
                                 <Badge variant="outline" className="ml-1 text-xs text-blue-600">Extra</Badge>
                               )}
                             </span>
-                            <Badge variant="outline" className="text-xs">
-                              {item.produits.categorie}
-                            </Badge>
+                             <Badge variant="outline" className="text-xs">
+                               {getRealCategoryName(item)}
+                             </Badge>
                           </div>
                         ))}
                        {commande.commande_items.length > 2 && (
