@@ -152,7 +152,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .from('produits')
           .update({
             nom: formData.nom.trim(),
-            categorie: formData.categorie as any,
+            categorie: formData.est_extra ? 'extra' : (formData.categorie as any),
             commerce: formData.commerce as any,
             prix: prix,
             est_extra: formData.est_extra,
@@ -172,7 +172,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .from('produits')
           .insert({
             nom: formData.nom.trim(),
-            categorie: formData.categorie as any,
+            categorie: formData.est_extra ? 'extra' : (formData.categorie as any),
             commerce: formData.commerce as any,
             prix: prix,
             disponible: true,
@@ -273,7 +273,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     { key: 'entrees', label: 'Entrées', commerce: '961_lsf' },
     { key: 'sandwiches', label: 'Sandwiches', commerce: '961_lsf' },
     { key: 'bowls_salades', label: 'Bowls & Salades', commerce: '961_lsf' },
-    { key: 'frites', label: 'Frites', commerce: '961_lsf' }
+    { key: 'frites', label: 'Frites', commerce: '961_lsf' },
+    // Extra pour les deux commerces
+    { key: 'extra', label: 'Extra', commerce: 'both' }
   ];
 
   const getCategoryInfo = (product: Produit) => {

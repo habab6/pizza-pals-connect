@@ -17,7 +17,7 @@ import PrixExtraModal from "@/components/modals/PrixExtraModal";
 interface Produit {
   id: string;
   nom: string;
-  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
+  categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra';
   prix: number;
   est_extra: boolean;
   categorie_custom_id: string | null;
@@ -64,6 +64,26 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
 
   useEffect(() => {
     fetchProduits();
+    
+    // Écouter les changements de produits en temps réel
+    const channel = supabase
+      .channel('produits-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'produits'
+        },
+        () => {
+          fetchProduits(); // Rafraîchir la liste des produits
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchProduits = async () => {
@@ -265,7 +285,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
       const commerces = new Set();
       panier.forEach(item => {
         const categorie = item.produit.categorie;
-        if (['pizzas', 'pates', 'desserts'].includes(categorie)) {
+        if (['pizzas', 'pates', 'desserts'].includes(categorie) || item.produit.est_extra) {
           commerces.add('dolce_italia');
         } else if (['sandwiches', 'entrees', 'bowls_salades', 'frites'].includes(categorie)) {
           commerces.add('961_lsf');
@@ -333,7 +353,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
         { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
         { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-        { key: 'boissons_dolce', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+        { key: 'boissons_dolce', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+        { key: 'extra', label: 'Extra', color: 'bg-gray-50 text-gray-700 border-gray-200' }
       ]
     },
     '961_lsf': {
@@ -344,7 +365,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
         { key: 'bowls_salades', label: 'Bowls & Salades', color: 'bg-purple-50 text-purple-700 border-purple-200' },
         { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-        { key: 'boissons_lsf', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' }
+        { key: 'boissons_lsf', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+        { key: 'extra', label: 'Extra', color: 'bg-gray-50 text-gray-700 border-gray-200' }
       ]
     }
   };
