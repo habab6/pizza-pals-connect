@@ -27,10 +27,13 @@ interface Commande {
   };
   commande_items?: Array<{
     quantite: number;
+    prix_unitaire: number;
     produits: {
       nom: string;
       categorie: string;
       commerce?: string;
+      prix: number;
+      est_extra: boolean;
     };
   }>;
 }
@@ -129,7 +132,8 @@ export const useAdaptivePolling = ({
       clients (nom, telephone, adresse),
       commande_items (
         quantite,
-        produits (nom, categorie, commerce)
+        prix_unitaire,
+        produits (nom, categorie, commerce, prix, est_extra)
       )
     `;
 

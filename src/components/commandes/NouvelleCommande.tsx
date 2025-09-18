@@ -284,7 +284,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
         commande_id: commande.id,
         produit_id: item.produit.id,
         quantite: item.quantite,
-        prix_unitaire: item.produit.prix,
+        prix_unitaire: item.prix_unitaire || item.produit.prix,
         remarque: null
       }));
 
@@ -609,8 +609,18 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <h5 className="text-sm font-medium truncate">{formatProduitNom(item.produit.nom, item.produit.categorie)}</h5>
-                                  <p className="text-xs text-muted-foreground">{item.produit.prix.toFixed(2)}€ × {item.quantite}</p>
+                                  <h5 className="text-sm font-medium truncate">
+                                    {formatProduitNom(item.produit.nom, item.produit.categorie)}
+                                    {item.produit.est_extra && (
+                                      <Badge variant="outline" className="ml-1 text-xs">Extra</Badge>
+                                    )}
+                                  </h5>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
+                                    {item.produit.est_extra && item.prix_unitaire !== item.produit.prix && (
+                                      <span className="text-blue-600 ml-1">(Prix personnalisé)</span>
+                                    )}
+                                  </p>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                   <Button

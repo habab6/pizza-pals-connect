@@ -28,9 +28,12 @@ interface Commande {
   };
   commande_items: Array<{
     quantite: number;
+    prix_unitaire: number;
     produits: {
       nom: string;
       categorie: string;
+      prix: number;
+      est_extra: boolean;
     };
   }>;
 }
@@ -162,7 +165,8 @@ const LivreurDashboard = () => {
           clients (nom, telephone, adresse),
           commande_items (
             quantite,
-            produits (nom, categorie)
+            prix_unitaire,
+            produits (nom, categorie, prix, est_extra)
           )
         `)
         .eq('id', commandeId)
@@ -271,9 +275,14 @@ const LivreurDashboard = () => {
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                        {commande.commande_items.map((item, index) => (
                          <div key={index} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
-                           <div className="flex-1">
-                             <span>{item.quantite}x {item.produits.nom}</span>
-                           </div>
+                            <div className="flex-1">
+                              <span>{item.quantite}x {item.produits.nom}</span>
+                              {item.prix_unitaire !== item.produits.prix && (
+                                <Badge variant="outline" className="ml-2 text-xs text-blue-600">
+                                  Extra ({item.prix_unitaire.toFixed(2)}€)
+                                </Badge>
+                              )}
+                            </div>
                            <Badge variant="outline" className="text-xs">
                              {item.produits.categorie}
                            </Badge>
@@ -354,14 +363,19 @@ const LivreurDashboard = () => {
                       Articles ({commande.commande_items.length}):
                     </h4>
                      <div className="space-y-1">
-                       {commande.commande_items.slice(0, 2).map((item, index) => (
-                         <div key={index} className="flex justify-between items-center text-sm">
-                           <span>{item.quantite}x {item.produits.nom}</span>
-                           <Badge variant="outline" className="text-xs">
-                             {item.produits.categorie}
-                           </Badge>
-                         </div>
-                       ))}
+                        {commande.commande_items.slice(0, 2).map((item, index) => (
+                          <div key={index} className="flex justify-between items-center text-sm">
+                            <span>
+                              {item.quantite}x {item.produits.nom}
+                              {item.prix_unitaire !== item.produits.prix && (
+                                <Badge variant="outline" className="ml-1 text-xs text-blue-600">Extra</Badge>
+                              )}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {item.produits.categorie}
+                            </Badge>
+                          </div>
+                        ))}
                        {commande.commande_items.length > 2 && (
                          <p className="text-sm text-gray-500">+{commande.commande_items.length - 2} autre(s)</p>
                        )}

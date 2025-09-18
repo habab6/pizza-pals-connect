@@ -321,14 +321,19 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
                   <div key={item.id} className="border rounded-lg p-4">
                      <div className="flex justify-between items-start mb-2">
                        <div className="flex-1">
-                         <div className="flex items-center space-x-2 mb-1">
-                           <h4 className="font-medium">
-                             {formatProduitNom(item.produits.nom, item.produits.categorie)}
-                           </h4>
-                           <Badge variant="secondary" className="text-xs">
-                             {item.produits.categorie}
-                           </Badge>
-                         </div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-medium">
+                              {formatProduitNom(item.produits.nom, item.produits.categorie)}
+                            </h4>
+                            <Badge variant="secondary" className="text-xs">
+                              {item.produits.categorie}
+                            </Badge>
+                            {item.prix_unitaire !== item.produits.prix && (
+                              <Badge variant="outline" className="text-xs text-blue-600">
+                                Extra
+                              </Badge>
+                            )}
+                          </div>
                          <p className="text-sm text-gray-600">
                            Prix unitaire: {item.prix_unitaire.toFixed(2)}€
                          </p>
