@@ -36,6 +36,7 @@ interface Commande {
 }
 
 const CuisinierDashboard = () => {
+  console.log('CuisinierDashboard loaded'); // Force cache refresh
   const [nouvelleCommande, setNouvelleCommande] = useState<Commande | null>(null);
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
