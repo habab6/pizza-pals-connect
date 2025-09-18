@@ -42,30 +42,20 @@ interface CacheEntry {
   ttl: number; // Time to live in milliseconds
 }
 
-// Détection des heures d'ouverture (7h-23h)
+// Détection des heures d'ouverture (14h-3h, fermé 3h-13h)
 const isOpenHours = (): boolean => {
   const now = new Date();
   const hour = now.getHours();
-  return hour >= 7 && hour <= 23;
+  return hour >= 14 || hour < 3; // Ouvert de 14h à 2h59
 };
 
-// Détection de la période de rush (11h30-14h et 18h-21h30)
+// Détection de la période de rush (17h-00h)
 const isRushHour = (): boolean => {
   const now = new Date();
   const hour = now.getHours();
-  const minute = now.getMinutes();
-  const timeInMinutes = hour * 60 + minute;
   
-  // Rush midi : 11h30-14h (690-840 minutes)
-  const lunchRushStart = 11 * 60 + 30;
-  const lunchRushEnd = 14 * 60;
-  
-  // Rush soir : 18h-21h30 (1080-1290 minutes)
-  const dinnerRushStart = 18 * 60;
-  const dinnerRushEnd = 21 * 60 + 30;
-  
-  return (timeInMinutes >= lunchRushStart && timeInMinutes <= lunchRushEnd) ||
-         (timeInMinutes >= dinnerRushStart && timeInMinutes <= dinnerRushEnd);
+  // Rush : 17h à 00h (minuit)
+  return hour >= 17 || hour === 0;
 };
 
 // Calcul de l'intervalle adaptatif
