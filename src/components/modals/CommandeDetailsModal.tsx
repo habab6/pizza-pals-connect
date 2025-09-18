@@ -329,36 +329,74 @@ const CommandeDetailsModal = ({ commandeId, isOpen, onClose }: CommandeDetailsMo
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {commande.commande_items.map((item, index) => (
-                  <div key={item.id} className="border rounded-lg p-4">
-                     <div className="flex justify-between items-start mb-2">
-                       <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                             <h4 className="font-medium">
-                               {getDisplayName(item)}
-                             </h4>
-                             <Badge variant="secondary" className="text-xs">
-                               {getRealCategoryName(item)}
-                             </Badge>
-                            {item.prix_unitaire !== item.produits.prix && (
-                              <Badge variant="outline" className="text-xs text-blue-600">
-                                Extra
-                              </Badge>
-                            )}
-                          </div>
-                         <p className="text-sm text-gray-600">
-                           Prix unitaire: {item.prix_unitaire.toFixed(2)}€
-                         </p>
+                {commande.commande_items.map((item, index) => {
+                  // Extraire les extras de la remarque
+                  const parseExtras = (remarque: string | null) => {
+                    if (!remarque) return { customName: null, extras: [] };
+                    
+                    const parts = remarque.split('|EXTRAS:');
+                    const customName = parts.length > 1 ? (parts[0] || null) : remarque;
+                    
+                    if (parts.length > 1) {
+                      const extrasString = parts[1];
+                      const extras = extrasString.split(',').map(extraStr => {
+                        const match = extraStr.match(/\+(.+)\((.+)€\)/);
+                        if (match) {
+                          return { nom: match[1], prix: parseFloat(match[2]) };
+                        }
+                        return null;
+                      }).filter(Boolean);
+                      return { customName, extras };
+                    }
+                    
+                    return { customName, extras: [] };
+                  };
+                  
+                  const { customName, extras } = parseExtras(item.remarque);
+                  const prixBase = item.produits.prix;
+                  const prixExtras = extras.reduce((sum, extra) => sum + extra.prix, 0);
+                  
+                  return (
+                    <div key={item.id} className="border rounded-lg p-4">
+                       <div className="flex justify-between items-start mb-2">
+                         <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                               <h4 className="font-medium">
+                                 {customName || item.produits.nom}
+                               </h4>
+                               <Badge variant="secondary" className="text-xs">
+                                 {getRealCategoryName(item)}
+                               </Badge>
+                              {(extras.length > 0 || item.prix_unitaire !== item.produits.prix) && (
+                                <Badge variant="outline" className="text-xs text-blue-600">
+                                  {extras.length > 0 ? 'Avec extras' : 'Extra'}
+                                </Badge>
+                              )}
+                            </div>
+                           <div className="text-sm text-gray-600 space-y-1">
+                             <p>Prix de base: {prixBase.toFixed(2)}€</p>
+                             {extras.length > 0 && (
+                               <div className="ml-2">
+                                 {extras.map((extra, extraIndex) => (
+                                   <p key={extraIndex} className="text-xs text-blue-600">
+                                     + {extra.nom}: {extra.prix.toFixed(2)}€
+                                   </p>
+                                 ))}
+                               </div>
+                             )}
+                             <p className="font-medium">Prix unitaire total: {item.prix_unitaire.toFixed(2)}€</p>
+                           </div>
+                         </div>
+                        <div className="text-right">
+                          <p className="font-medium">x{item.quantite}</p>
+                          <p className="text-sm font-bold text-red-600">
+                            {(item.prix_unitaire * item.quantite).toFixed(2)}€
+                          </p>
+                        </div>
                        </div>
-                      <div className="text-right">
-                        <p className="font-medium">x{item.quantite}</p>
-                        <p className="text-sm font-bold text-red-600">
-                          {(item.prix_unitaire * item.quantite).toFixed(2)}€
-                        </p>
-                      </div>
                      </div>
-                   </div>
-                ))}
+                  );
+                })}
                 
                 <Separator />
                 

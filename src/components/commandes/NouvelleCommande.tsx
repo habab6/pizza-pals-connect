@@ -434,13 +434,27 @@ const NouvelleCommande = () => {
 
       if (commandeError) throw commandeError;
 
-      const items = panier.map(item => ({
-        commande_id: commande.id,
-        produit_id: item.produit.id,
-        quantite: item.quantite,
-        prix_unitaire: item.prix_unitaire || item.produit.prix,
-        remarque: item.nom_personnalise || null
-      }));
+      const items = panier.map(item => {
+        // Construire la remarque avec les extras
+        let remarque = item.nom_personnalise || null;
+        
+        if (item.extras && item.extras.length > 0) {
+          const extrasText = item.extras.map(extra => `+${extra.nom}(${extra.prix}€)`).join(',');
+          remarque = remarque ? `${remarque}|EXTRAS:${extrasText}` : `EXTRAS:${extrasText}`;
+        }
+        
+        // Calculer le prix unitaire incluant les extras
+        const prixExtras = item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0;
+        const prixUnitaireTotal = (item.prix_unitaire || item.produit.prix) + prixExtras;
+        
+        return {
+          commande_id: commande.id,
+          produit_id: item.produit.id,
+          quantite: item.quantite,
+          prix_unitaire: prixUnitaireTotal,
+          remarque: remarque
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from('commande_items')
