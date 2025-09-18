@@ -80,6 +80,8 @@ const CaissierDashboard = () => {
     return commande.statut;
   };
 
+  const commandesActives = commandes.filter((c: any) => getGlobalStatus(c) !== 'termine');
+
   const getStatusBadge = (commande: any) => {
     const statut = getGlobalStatus(commande);
     
@@ -361,7 +363,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouvelles</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {commandes.filter(c => getGlobalStatus(c) === 'nouveau').length}
+                  {commandesActives.filter(c => getGlobalStatus(c) === 'nouveau').length}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-red-600" />
@@ -375,7 +377,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {commandes.filter(c => getGlobalStatus(c) === 'en_preparation').length}
+                  {commandesActives.filter(c => getGlobalStatus(c) === 'en_preparation').length}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-orange-600" />
@@ -389,7 +391,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prêtes</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {commandes.filter(c => getGlobalStatus(c) === 'pret').length}
+                  {commandesActives.filter(c => getGlobalStatus(c) === 'pret').length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -403,7 +405,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En livraison</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {commandes.filter(c => getGlobalStatus(c) === 'en_livraison').length}
+                  {commandesActives.filter(c => getGlobalStatus(c) === 'en_livraison').length}
                 </p>
               </div>
               <Truck className="h-8 w-8 text-blue-600" />
@@ -419,10 +421,10 @@ const CaissierDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {commandes.length === 0 ? (
+            {commandesActives.length === 0 ? (
               <p className="text-center text-gray-500 py-8">Aucune commande pour le moment</p>
             ) : (
-              commandes.map((commande) => (
+              commandesActives.map((commande) => (
                 <div key={commande.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-3 sm:gap-0">
                   <div className="flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-2 gap-1 sm:gap-0">
