@@ -61,6 +61,13 @@ const CaissierDashboard = () => {
 
     const statutDolce = commande.statut_dolce_italia || 'nouveau';
     const statutLSF = commande.statut_961_lsf || 'nouveau';
+    const statutGlobal = commande.statut;
+
+    // Pour les livraisons, toujours utiliser le statut global une fois en livraison/livré/terminé
+    if (commande.type_commande === 'livraison' && 
+        ['en_livraison', 'livre', 'termine'].includes(statutGlobal)) {
+      return statutGlobal;
+    }
 
     // Si c'est une commande mixte
     if (hasDolce && hasLSF) {
@@ -77,7 +84,7 @@ const CaissierDashboard = () => {
     if (hasLSF) return statutLSF;
     
     // Fallback sur le statut global
-    return commande.statut;
+    return statutGlobal;
   };
 
   const commandesActives = commandes.filter((c: any) => getGlobalStatus(c) !== 'termine');
