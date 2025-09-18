@@ -15,6 +15,8 @@ const PrixExtraModal = ({ open, onClose, onConfirm, articleNom }: PrixExtraModal
   const [prix, setPrix] = useState('');
   const [error, setError] = useState('');
 
+  console.log('PrixExtraModal - open:', open, 'articleNom:', articleNom);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     

@@ -133,7 +133,11 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const handleProductClick = (produit: Produit) => {
+    console.log('Produit cliqué:', produit);
+    console.log('Est un produit extra?', produit.est_extra);
+    
     if (produit.est_extra) {
+      console.log('Ouverture du modal prix extra pour:', produit.nom);
       setProduitPourPrixExtra(produit);
       setShowPrixExtraModal(true);
     } else {
@@ -142,6 +146,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const handlePrixExtraConfirm = (prix: number) => {
+    console.log('Prix confirmé:', prix, 'pour le produit:', produitPourPrixExtra?.nom);
+    
     if (produitPourPrixExtra) {
       ajouterAuPanier(produitPourPrixExtra, prix);
       setProduitPourPrixExtra(null);
