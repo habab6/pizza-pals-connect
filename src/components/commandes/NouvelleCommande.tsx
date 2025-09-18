@@ -978,6 +978,37 @@ const NouvelleCommande = () => {
                   <div className="space-y-2 text-sm">
                     <p><strong>Type:</strong> {typeCommande === 'sur_place' ? 'Sur place' : typeCommande === 'a_emporter' ? 'À emporter' : 'Livraison'}</p>
                     <p><strong>Articles:</strong> {panier.length} ({panier.reduce((sum, item) => sum + item.quantite, 0)} unités)</p>
+                    
+                    {/* Détail des articles */}
+                    <div className="mt-3 space-y-2">
+                      <p className="font-medium">Articles commandés:</p>
+                      <div className="bg-gray-50 p-3 rounded-lg space-y-2 max-h-40 overflow-y-auto">
+                        {panier.map((item, index) => (
+                          <div key={`recap-${index}`} className="text-xs">
+                            <div className="flex justify-between items-start">
+                              <span className="font-medium">
+                                {item.quantite}x {item.nom_personnalise || formatProduitNom(item.produit.nom, item.produit.categorie)}
+                              </span>
+                              <span className="font-medium">
+                                {(((item.prix_unitaire || item.produit.prix) + (item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0)) * item.quantite).toFixed(2)}€
+                              </span>
+                            </div>
+                            {/* Affichage des extras avec prix */}
+                            {item.extras && item.extras.length > 0 && (
+                              <div className="ml-3 mt-1 space-y-1">
+                                {item.extras.map((extra, extraIndex) => (
+                                  <div key={`recap-extra-${extraIndex}`} className="flex justify-between text-blue-600">
+                                    <span>+ {extra.nom}</span>
+                                    <span>{extra.prix.toFixed(2)}€</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
                     <p><strong>Total:</strong> <span className="text-primary font-bold">{calculerTotal().toFixed(2)}€</span></p>
                   </div>
                 </div>
