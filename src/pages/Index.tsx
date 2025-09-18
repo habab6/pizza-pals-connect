@@ -94,9 +94,6 @@ const Index = () => {
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-orange-500 shadow-lg">
-            <Pizza className="h-12 w-12 text-white" />
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Système de gestion
           </h1>
