@@ -62,22 +62,20 @@ const CaissierDashboard = () => {
     const statutLSF = commande.statut_961_lsf || 'nouveau';
     const statutGlobal = commande.statut;
 
-    // Si le statut global est déjà "termine", on le priorise pour éviter les régressions
+    // RÈGLE PRIORITAIRE : Si le statut global est "termine", on le retourne toujours
+    // Cela évite que les commandes terminées repassent à un autre statut
     if (statutGlobal === 'termine') {
       return 'termine';
     }
 
-    // Pour les livraisons, toujours utiliser le statut global une fois en livraison/livré/terminé
+    // Pour les livraisons, utiliser le statut global une fois en livraison/livré
     if (commande.type_commande === 'livraison' && 
-        ['en_livraison', 'livre', 'termine'].includes(statutGlobal)) {
+        ['en_livraison', 'livre'].includes(statutGlobal)) {
       return statutGlobal;
     }
 
     // Si c'est une commande mixte
     if (hasDolce && hasLSF) {
-      // Si les deux commerces sont terminés -> termine
-      if (statutDolce === 'termine' && statutLSF === 'termine') return 'termine';
-
       // Si au moins un commerce est en préparation -> en_preparation
       if (statutDolce === 'en_preparation' || statutLSF === 'en_preparation') return 'en_preparation';
       
@@ -91,9 +89,13 @@ const CaissierDashboard = () => {
       return 'nouveau';
     }
     
-    // Commande d'un seul commerce
-    if (hasDolce && !hasLSF) return statutDolce;
-    if (hasLSF && !hasDolce) return statutLSF;
+    // Commande d'un seul commerce - mais toujours respecter le statut global "termine"
+    if (hasDolce && !hasLSF) {
+      return statutDolce === 'termine' ? 'termine' : statutDolce;
+    }
+    if (hasLSF && !hasDolce) {
+      return statutLSF === 'termine' ? 'termine' : statutLSF;
+    }
     
     // Fallback sur le statut global
     return statutGlobal;
