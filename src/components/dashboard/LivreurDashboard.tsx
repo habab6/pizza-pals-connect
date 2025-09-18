@@ -10,7 +10,6 @@ import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;
@@ -212,8 +211,6 @@ const LivreurDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Debug Info en développement */}
-      <DebugInfo debugInfo={debugInfo} />
       
       <div className="flex items-center space-x-3">
         <Truck className="h-8 w-8 text-red-600" />

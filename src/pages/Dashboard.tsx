@@ -7,6 +7,7 @@ import LivreurDashboard from "@/components/dashboard/LivreurDashboard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lock } from "lucide-react";
 import { usePosteAuth } from "@/hooks/usePosteAuth";
+import { DebugInfoButton } from "@/components/ui/DebugInfoButton";
 
 const Dashboard = () => {
   const { role } = useParams<{ role: string }>();
@@ -78,6 +79,7 @@ const Dashboard = () => {
                   </div>
                 )}
               </div>
+              <DebugInfoButton role={role as any} />
               <Button
                 variant="outline"
                 onClick={handleLogout}
