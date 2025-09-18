@@ -11,6 +11,8 @@ import { Plus, Edit3, Trash2, Eye, EyeOff, X, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import GestionCategories from "./GestionCategories";
 
 interface Produit {
   id: string;
@@ -20,6 +22,15 @@ interface Produit {
   prix: number;
   disponible: boolean;
   created_at: string;
+  est_extra: boolean;
+  categorie_custom_id: string | null;
+}
+
+interface Categorie {
+  id: string;
+  nom: string;
+  commerce: 'dolce_italia' | '961_lsf';
+  actif: boolean;
 }
 
 interface GestionArticlesProps {
@@ -28,15 +39,19 @@ interface GestionArticlesProps {
 
 const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [produits, setProduits] = useState<Produit[]>([]);
+  const [customCategories, setCustomCategories] = useState<Categorie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showCategoriesManagement, setShowCategoriesManagement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produit | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
     categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches',
     commerce: 'dolce_italia' as 'dolce_italia' | '961_lsf',
-    prix: ''
+    prix: '',
+    est_extra: false,
+    categorie_custom_id: null as string | null
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategorie, setFilterCategorie] = useState<string>('all');
@@ -48,6 +63,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   useEffect(() => {
     console.log('GestionArticles: useEffect called');
     fetchProduits();
+    fetchCustomCategories();
   }, []);
 
   const fetchProduits = async () => {
@@ -79,12 +95,29 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     }
   };
 
+  const fetchCustomCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('actif', true)
+        .order('nom', { ascending: true });
+
+      if (error) throw error;
+      setCustomCategories(data || []);
+    } catch (error: any) {
+      console.error('Error fetching custom categories:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       nom: '',
       categorie: 'pizzas',
       commerce: 'dolce_italia',
-      prix: ''
+      prix: '',
+      est_extra: false,
+      categorie_custom_id: null
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -93,17 +126,17 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.nom.trim() || !formData.prix) {
+    if (!formData.nom.trim() || (!formData.est_extra && !formData.prix)) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Veuillez remplir tous les champs"
+        description: "Veuillez remplir tous les champs requis"
       });
       return;
     }
 
-    const prix = parseFloat(formData.prix);
-    if (isNaN(prix) || prix <= 0) {
+    const prix = formData.est_extra ? 0 : parseFloat(formData.prix);
+    if (!formData.est_extra && (isNaN(prix) || prix <= 0)) {
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -121,7 +154,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             nom: formData.nom.trim(),
             categorie: formData.categorie as any,
             commerce: formData.commerce as any,
-            prix: prix
+            prix: prix,
+            est_extra: formData.est_extra,
+            categorie_custom_id: formData.categorie_custom_id
           })
           .eq('id', editingProduct.id);
 
@@ -140,7 +175,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             categorie: formData.categorie as any,
             commerce: formData.commerce as any,
             prix: prix,
-            disponible: true
+            disponible: true,
+            est_extra: formData.est_extra,
+            categorie_custom_id: formData.categorie_custom_id
           });
 
         if (error) throw error;
@@ -168,7 +205,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
       nom: product.nom,
       categorie: product.categorie,
       commerce: product.commerce,
-      prix: product.prix.toString()
+      prix: product.prix.toString(),
+      est_extra: product.est_extra,
+      categorie_custom_id: product.categorie_custom_id
     });
     setShowAddForm(true);
   };
@@ -224,7 +263,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     }
   };
 
-  const categories = [
+  const defaultCategories = [
     // Dolce Italia
     { key: 'pizzas', label: 'Pizzas', commerce: 'dolce_italia' },
     { key: 'pates', label: 'Pâtes', commerce: 'dolce_italia' },
@@ -237,13 +276,18 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     { key: 'frites', label: 'Frites', commerce: '961_lsf' }
   ];
 
-  const getCategoryInfo = (categorie: string) => {
-    return categories.find(cat => cat.key === categorie) || { key: categorie, label: categorie };
+  const getCategoryInfo = (product: Produit) => {
+    if (product.categorie_custom_id) {
+      const customCat = customCategories.find(cat => cat.id === product.categorie_custom_id);
+      return customCat ? { key: customCat.id, label: customCat.nom } : { key: 'custom', label: 'Catégorie personnalisée' };
+    }
+    return defaultCategories.find(cat => cat.key === product.categorie) || { key: product.categorie, label: product.categorie };
   };
 
   const filteredProducts = produits.filter(product => {
     const matchesSearch = product.nom.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategorie === 'all' || product.categorie === filterCategorie;
+    const matchesCategory = filterCategorie === 'all' || 
+      (product.categorie_custom_id ? product.categorie_custom_id === filterCategorie : product.categorie === filterCategorie);
     const matchesCommerce = filterCommerce === 'all' || product.commerce === filterCommerce;
     const matchesDisponible = filterDisponible === 'all' || 
       (filterDisponible === 'available' && product.disponible) ||
@@ -266,9 +310,42 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     return commerce === 'dolce_italia' ? 'Dolce Italia' : '961 LSF';
   };
 
-  const getCategoriesForCommerce = (commerce: string) => {
-    return categories.filter(cat => cat.commerce === commerce || cat.commerce === 'both');
+  const getAllCategories = () => {
+    const defaults = defaultCategories.map(cat => ({
+      key: cat.key,
+      label: cat.label,
+      isCustom: false
+    }));
+    
+    const customs = customCategories.map(cat => ({
+      key: cat.id,
+      label: cat.nom,
+      isCustom: true
+    }));
+
+    return [...defaults, ...customs];
   };
+
+  const getCategoriesForCommerce = (commerce: string) => {
+    const defaults = defaultCategories.filter(cat => cat.commerce === commerce || cat.commerce === 'both');
+    const customs = customCategories.filter(cat => cat.commerce === commerce);
+    
+    return [
+      ...defaults,
+      ...customs.map(cat => ({ key: cat.id, label: cat.nom, commerce: cat.commerce }))
+    ];
+  };
+
+  if (showCategoriesManagement) {
+    return (
+      <GestionCategories 
+        onClose={() => {
+          setShowCategoriesManagement(false);
+          fetchCustomCategories();
+        }} 
+      />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -296,6 +373,15 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             <span>Ajouter un article</span>
           </Button>
 
+          <Button 
+            onClick={() => setShowCategoriesManagement(true)}
+            variant="outline"
+            className="flex items-center space-x-2"
+          >
+            <Edit3 className="h-4 w-4" />
+            <span>Gérer les catégories</span>
+          </Button>
+
           <div className="flex flex-1 gap-2">
             <Input
               placeholder="Rechercher un article..."
@@ -321,9 +407,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes</SelectItem>
-                {categories.map(cat => (
+                {getAllCategories().map(cat => (
                   <SelectItem key={cat.key} value={cat.key}>
-                    {cat.label}
+                    {cat.label} {cat.isCustom ? '(Personnalisée)' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -364,7 +450,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                   </div>
                   
                   {products.map((product) => {
-                    const categoryInfo = getCategoryInfo(product.categorie);
+                    const categoryInfo = getCategoryInfo(product);
                     
                     return (
                       <Card key={product.id} className="transition-all hover:shadow-md">
@@ -377,6 +463,11 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                                   <Badge variant="outline" className="text-xs flex-shrink-0">
                                     {categoryInfo.label}
                                   </Badge>
+                                  {product.est_extra && (
+                                    <Badge variant="default" className="text-xs flex-shrink-0">
+                                      Extra
+                                    </Badge>
+                                  )}
                                   <Badge 
                                     variant={product.disponible ? "success" : "secondary"}
                                     className="text-xs flex-shrink-0"
@@ -384,7 +475,9 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                                     {product.disponible ? "Disponible" : "Indisponible"}
                                   </Badge>
                                 </div>
-                                <p className="text-lg font-bold text-primary">{product.prix.toFixed(2)}€</p>
+                                <p className="text-lg font-bold text-primary">
+                                  {product.est_extra ? "Prix variable" : `${product.prix.toFixed(2)}€`}
+                                </p>
                               </div>
                             </div>
 
@@ -466,46 +559,78 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="categorie">Catégorie *</Label>
-              <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getCategoriesForCommerce(formData.commerce).map(cat => (
-                    <SelectItem key={cat.key} value={cat.key}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="prix">Prix (€) *</Label>
-              <Input
-                id="prix"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.prix}
-                onChange={(e) => setFormData({...formData, prix: e.target.value})}
-                placeholder="Ex: 12.50"
-                required
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="est_extra"
+                checked={formData.est_extra}
+                onCheckedChange={(checked) => setFormData({...formData, est_extra: !!checked})}
               />
+              <Label htmlFor="est_extra">Article extra (prix décidé par le caissier)</Label>
             </div>
 
-            <div className="flex space-x-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={resetForm}
-                className="flex-1"
-              >
+            {!formData.est_extra && (
+              <>
+                <div>
+                  <Label htmlFor="categorie">Catégorie *</Label>
+                  <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value, categorie_custom_id: null})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getCategoriesForCommerce(formData.commerce).map(cat => (
+                        <SelectItem key={cat.key} value={cat.key}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="categorie_custom">Ou catégorie personnalisée</Label>
+                  <Select 
+                    value={formData.categorie_custom_id || ''} 
+                    onValueChange={(value) => setFormData({...formData, categorie_custom_id: value || null})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une catégorie personnalisée" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucune</SelectItem>
+                      {customCategories
+                        .filter(cat => cat.commerce === formData.commerce)
+                        .map(cat => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.nom}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {!formData.est_extra && (
+              <div>
+                <Label htmlFor="prix">Prix (€) *</Label>
+                <Input
+                  id="prix"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.prix}
+                  onChange={(e) => setFormData({...formData, prix: e.target.value})}
+                  placeholder="Ex: 12.50"
+                  required={!formData.est_extra}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={resetForm}>
                 Annuler
               </Button>
-              <Button type="submit" className="flex-1">
+              <Button type="submit">
                 {editingProduct ? 'Modifier' : 'Ajouter'}
               </Button>
             </div>
@@ -513,13 +638,13 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de confirmation de suppression */}
+      {/* AlertDialog pour confirmer la suppression */}
       <AlertDialog open={!!deletingProduct} onOpenChange={() => setDeletingProduct(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer l'article</AlertDialogTitle>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer "{deletingProduct?.nom}" ? 
+              Êtes-vous sûr de vouloir supprimer le produit "{deletingProduct?.nom}" ? 
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>

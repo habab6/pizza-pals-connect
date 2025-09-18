@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          actif: boolean
+          commerce: Database["public"]["Enums"]["commerce_type"]
+          created_at: string
+          id: string
+          nom: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          commerce: Database["public"]["Enums"]["commerce_type"]
+          created_at?: string
+          id?: string
+          nom: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          commerce?: Database["public"]["Enums"]["commerce_type"]
+          created_at?: string
+          id?: string
+          nom?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           adresse: string | null
@@ -253,9 +280,11 @@ export type Database = {
       produits: {
         Row: {
           categorie: Database["public"]["Enums"]["product_category"]
+          categorie_custom_id: string | null
           commerce: Database["public"]["Enums"]["commerce_type"]
           created_at: string
           disponible: boolean
+          est_extra: boolean
           id: string
           nom: string
           prix: number
@@ -263,9 +292,11 @@ export type Database = {
         }
         Insert: {
           categorie: Database["public"]["Enums"]["product_category"]
+          categorie_custom_id?: string | null
           commerce?: Database["public"]["Enums"]["commerce_type"]
           created_at?: string
           disponible?: boolean
+          est_extra?: boolean
           id?: string
           nom: string
           prix: number
@@ -273,15 +304,25 @@ export type Database = {
         }
         Update: {
           categorie?: Database["public"]["Enums"]["product_category"]
+          categorie_custom_id?: string | null
           commerce?: Database["public"]["Enums"]["commerce_type"]
           created_at?: string
           disponible?: boolean
+          est_extra?: boolean
           id?: string
           nom?: string
           prix?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produits_categorie_custom_id_fkey"
+            columns: ["categorie_custom_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

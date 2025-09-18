@@ -12,17 +12,21 @@ import { formatProduitNom } from "@/utils/formatters";
 import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone, MessageSquare, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import PrixExtraModal from "@/components/modals/PrixExtraModal";
 
 interface Produit {
   id: string;
   nom: string;
   categorie: 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches';
   prix: number;
+  est_extra: boolean;
+  categorie_custom_id: string | null;
 }
 
 interface CartItem {
   produit: Produit;
   quantite: number;
+  prix_unitaire?: number; // Pour les articles extra avec prix personnalisé
 }
 
 interface Client {
@@ -52,6 +56,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [currentView, setCurrentView] = useState<'menu' | 'client'>('menu');
   const [categorieActive, setCategorieActive] = useState<string>('pizzas');
   const [commerceActive, setCommerceActive] = useState<'dolce_italia' | '961_lsf'>('dolce_italia');
+  const [showPrixExtraModal, setShowPrixExtraModal] = useState(false);
+  const [produitPourPrixExtra, setProduitPourPrixExtra] = useState<Produit | null>(null);
   
   const { toast } = useToast();
 
@@ -108,7 +114,7 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
-  const ajouterAuPanier = (produit: Produit) => {
+  const ajouterAuPanier = (produit: Produit, prixPersonnalise?: number) => {
     setPanier(prev => {
       const existant = prev.find(item => item.produit.id === produit.id);
       if (existant) {
@@ -118,8 +124,28 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
             : item
         );
       }
-      return [...prev, { produit, quantite: 1 }];
+      return [...prev, { 
+        produit, 
+        quantite: 1,
+        prix_unitaire: prixPersonnalise || produit.prix
+      }];
     });
+  };
+
+  const handleProductClick = (produit: Produit) => {
+    if (produit.est_extra) {
+      setProduitPourPrixExtra(produit);
+      setShowPrixExtraModal(true);
+    } else {
+      ajouterAuPanier(produit);
+    }
+  };
+
+  const handlePrixExtraConfirm = (prix: number) => {
+    if (produitPourPrixExtra) {
+      ajouterAuPanier(produitPourPrixExtra, prix);
+      setProduitPourPrixExtra(null);
+    }
   };
 
   const modifierQuantite = (produitId: string, delta: number) => {
@@ -137,7 +163,10 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   };
 
   const calculerTotal = () => {
-    return panier.reduce((total, item) => total + (item.produit.prix * item.quantite), 0);
+    return panier.reduce((total, item) => {
+      const prix = item.prix_unitaire || item.produit.prix;
+      return total + (prix * item.quantite);
+    }, 0);
   };
 
   const getQuantiteInPanier = (produitId: string) => {
@@ -746,6 +775,17 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
           </div>
         )}
       </div>
+
+      {/* Modal pour prix extra */}
+      <PrixExtraModal
+        open={showPrixExtraModal}
+        onClose={() => {
+          setShowPrixExtraModal(false);
+          setProduitPourPrixExtra(null);
+        }}
+        onConfirm={handlePrixExtraConfirm}
+        articleNom={produitPourPrixExtra?.nom || ''}
+      />
     </div>
   );
 };
