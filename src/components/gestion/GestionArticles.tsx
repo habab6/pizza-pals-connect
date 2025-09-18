@@ -45,7 +45,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
     nom: '',
-    categorie: 'pizzas' as 'pizzas' | 'pates' | 'desserts' | 'boissons' | 'entrees' | 'bowls_salades' | 'frites' | 'sandwiches' | 'extra',
+    categorie: '' as string, // Peut maintenant accepter n'importe quel ID de catégorie
     commerce: 'dolce_italia' as 'dolce_italia' | '961_lsf',
     prix: '',
     est_extra: false,
@@ -150,11 +150,11 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .from('produits')
           .update({
             nom: formData.nom.trim(),
-            categorie: formData.est_extra ? 'extra' : (formData.categorie as any),
+            categorie: 'extra', // Toujours 'extra' pour les catégories créées
             commerce: formData.commerce as any,
             prix: prix,
             est_extra: formData.est_extra,
-            categorie_custom_id: formData.categorie_custom_id
+            categorie_custom_id: formData.est_extra ? null : formData.categorie // L'ID de la catégorie sélectionnée
           })
           .eq('id', editingProduct.id);
 
@@ -170,12 +170,12 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           .from('produits')
           .insert({
             nom: formData.nom.trim(),
-            categorie: formData.est_extra ? 'extra' : (formData.categorie as any),
+            categorie: 'extra', // Toujours 'extra' pour les catégories créées
             commerce: formData.commerce as any,
             prix: prix,
             disponible: true,
             est_extra: formData.est_extra,
-            categorie_custom_id: formData.categorie_custom_id
+            categorie_custom_id: formData.est_extra ? null : formData.categorie // L'ID de la catégorie sélectionnée
           });
 
         if (error) throw error;
@@ -201,7 +201,7 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     setEditingProduct(product);
     setFormData({
       nom: product.nom,
-      categorie: product.categorie,
+      categorie: product.categorie_custom_id || product.categorie, // Utiliser l'ID de la catégorie personnalisée si disponible
       commerce: product.commerce,
       prix: product.prix.toString(),
       est_extra: product.est_extra,
@@ -525,45 +525,23 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
             </div>
 
             {!formData.est_extra && (
-              <>
-                <div>
-                  <Label htmlFor="categorie">Catégorie *</Label>
-                  <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value, categorie_custom_id: null})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getCategoriesForCommerce(formData.commerce).map(cat => (
-                        <SelectItem key={cat.key} value={cat.key}>
-                          {cat.label}
+              <div>
+                <Label htmlFor="categorie">Catégorie *</Label>
+                <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customCategories
+                      .filter(cat => cat.commerce === formData.commerce)
+                      .map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.nom}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="categorie_custom">Ou catégorie personnalisée</Label>
-                  <Select 
-                    value={formData.categorie_custom_id || 'none'} 
-                    onValueChange={(value) => setFormData({...formData, categorie_custom_id: value === 'none' ? null : value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une catégorie personnalisée" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Aucune</SelectItem>
-                      {customCategories
-                        .filter(cat => cat.commerce === formData.commerce)
-                        .map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.nom}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
 
             {!formData.est_extra && (
