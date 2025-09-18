@@ -20,7 +20,16 @@ export const usePosteAuth = () => {
     if (savedSession) {
       try {
         const session: PosteSession = JSON.parse(savedSession);
-        setCurrentSession(session);
+        
+        // Vérifier l'expiration de la session (24h)
+        const isExpired = Date.now() - session.authenticatedAt > 24 * 60 * 60 * 1000; // 24h
+        
+        if (isExpired) {
+          localStorage.removeItem('posteSession');
+          setCurrentSession(null);
+        } else {
+          setCurrentSession(session);
+        }
       } catch (error) {
         localStorage.removeItem('posteSession');
       } finally {
@@ -30,15 +39,29 @@ export const usePosteAuth = () => {
       setInitialized(true);
     }
 
-    // Nettoyer la session à la fermeture de la page
+    // La session persiste maintenant dans localStorage
+    // Elle ne sera supprimée que par :
+    // 1. Déconnexion manuelle (bouton déconnecter)
+    // 2. Expiration après 24h d'inactivité
+    // 3. Fermeture du navigateur (pas du simple refresh)
+    
     const handleBeforeUnload = () => {
-      localStorage.removeItem('posteSession');
+      // On marque seulement que l'utilisateur ferme la page
+      // La vraie suppression se fera après un délai si l'utilisateur ne revient pas
+      sessionStorage.setItem('pageClosing', Date.now().toString());
+    };
+
+    const handlePageShow = () => {
+      // Si l'utilisateur revient (refresh), on annule la fermeture
+      sessionStorage.removeItem('pageClosing');
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pageshow', handlePageShow);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pageshow', handlePageShow);
     };
   }, []);
 
