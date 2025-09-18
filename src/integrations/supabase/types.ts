@@ -424,6 +424,7 @@ export type Database = {
         | "bowls_salades"
         | "frites"
         | "sandwiches"
+        | "extra"
       user_role: "caissier" | "pizzaiolo" | "livreur" | "cuisinier"
     }
     CompositeTypes: {
@@ -572,6 +573,7 @@ export const Constants = {
         "bowls_salades",
         "frites",
         "sandwiches",
+        "extra",
       ],
       user_role: ["caissier", "pizzaiolo", "livreur", "cuisinier"],
     },
