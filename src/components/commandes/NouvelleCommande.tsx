@@ -542,14 +542,14 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                                     </div>
                                   )}
                                   
-                                  <Button
-                                    onClick={() => ajouterAuPanier(produit)}
-                                    size="sm"
-                                    className={isSelected ? 'bg-primary/80' : ''}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    Ajouter
-                                  </Button>
+                                   <Button
+                                     onClick={() => handleProductClick(produit)}
+                                     size="sm"
+                                     className={isSelected ? 'bg-primary/80' : ''}
+                                   >
+                                     <Plus className="h-3 w-3 mr-1" />
+                                     {produit.est_extra ? 'Prix' : 'Ajouter'}
+                                   </Button>
                                 </div>
                               </div>
                             </CardContent>
