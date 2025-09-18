@@ -305,10 +305,28 @@ const CuisinierDashboard = () => {
                           </div>
                         ))}
                       </div>
-                    </div>
+                     </div>
 
-                    {/* Notes */}
-                    {commande.notes && (
+                     {/* État de l'autre préparateur pour commandes mixtes */}
+                     {isMixte && (
+                       <div className="bg-gray-50 p-2 rounded text-xs">
+                         <h4 className="font-medium mb-1">État Dolce Italia:</h4>
+                         <div className="flex items-center space-x-2">
+                           {commande.statut_dolce_italia === 'nouveau' && (
+                             <Badge variant="destructive" className="text-xs">En attente</Badge>
+                           )}
+                           {commande.statut_dolce_italia === 'en_preparation' && (
+                             <Badge variant="warning" className="text-xs">En préparation depuis {new Date(commande.updated_at).toLocaleTimeString('fr-FR')}</Badge>
+                           )}
+                           {commande.statut_dolce_italia === 'pret' && (
+                             <Badge variant="success" className="text-xs">Terminé depuis {new Date(commande.updated_at).toLocaleTimeString('fr-FR')}</Badge>
+                           )}
+                         </div>
+                       </div>
+                     )}
+
+                     {/* Notes */}
+                     {commande.notes && (
                       <div className="bg-yellow-50 p-2 rounded">
                         <p className="text-sm"><strong>Notes:</strong> {commande.notes}</p>
                       </div>

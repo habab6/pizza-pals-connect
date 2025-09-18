@@ -262,8 +262,8 @@ const PizzaioloDashboard = () => {
                         {commande.clients && ` • ${commande.clients.nom}`}
                       </p>
                       {isMixte && (
-                        <Badge variant="secondary" className="mt-2 text-xs">
-                          🍕🥪 Commande mixte
+                        <Badge variant="outline" className="mt-1 bg-purple-50 text-purple-600 border-purple-200">
+                          Commande mixte
                         </Badge>
                       )}
                     </div>
@@ -286,7 +286,25 @@ const PizzaioloDashboard = () => {
                          </div>
                        ))}
                     </div>
+                   </div>
+
+                {/* État de l'autre préparateur pour commandes mixtes */}
+                {isMixte && (
+                  <div className="bg-gray-50 p-2 rounded text-xs">
+                    <h4 className="font-medium mb-1">État 961 LSF:</h4>
+                    <div className="flex items-center space-x-2">
+                      {commande.statut_961_lsf === 'nouveau' && (
+                        <Badge variant="destructive" className="text-xs">En attente</Badge>
+                      )}
+                      {commande.statut_961_lsf === 'en_preparation' && (
+                        <Badge variant="warning" className="text-xs">En préparation depuis {new Date(commande.updated_at).toLocaleTimeString('fr-FR')}</Badge>
+                      )}
+                      {commande.statut_961_lsf === 'pret' && (
+                        <Badge variant="success" className="text-xs">Terminé depuis {new Date(commande.updated_at).toLocaleTimeString('fr-FR')}</Badge>
+                      )}
+                    </div>
                   </div>
+                )}
 
                 {/* Notes */}
                 {commande.notes && (
