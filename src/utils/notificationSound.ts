@@ -119,11 +119,9 @@ export const getNotificationAudio = (): NotificationAudio => {
 };
 
 export const playNotificationSound = () => {
-  const audio = getNotificationAudio();
-  audio.play();
+  // Notification sonore désactivée - notifications visuelles seulement
 };
 
 export const stopNotificationSound = () => {
-  const audio = getNotificationAudio();
-  audio.stop();
+  // Notification sonore désactivée - notifications visuelles seulement
 };
