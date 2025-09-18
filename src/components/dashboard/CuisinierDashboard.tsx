@@ -140,6 +140,15 @@ const CuisinierDashboard = () => {
     );
   };
 
+  const getCardStyle = (statut: any) => {
+    const styles = {
+      nouveau: "border-l-4 border-l-red-500 bg-red-50/30",
+      en_preparation: "border-l-4 border-l-orange-500 bg-orange-50/30", 
+      pret: "border-l-4 border-l-green-500 bg-green-50/30"
+    };
+    return styles[statut as keyof typeof styles] || "border-l-4 border-l-gray-500";
+  };
+
   const getTypeCommande = (type: string) => {
     const types = {
       sur_place: "Sur place",
@@ -261,7 +270,7 @@ const CuisinierDashboard = () => {
               return (
                 <Card 
                   key={commande.id} 
-                  className={`${isMixte ? 'border-l-4 border-l-purple-500' : 'border-l-4 border-l-red-500'} ${isNouveau ? 'notification-alert animate-pulse' : ''}`}
+                  className={`${isMixte ? 'border-l-4 border-l-purple-500 bg-purple-50/30' : getCardStyle(statutLSF)} ${isNouveau ? 'notification-alert animate-pulse' : ''}`}
                 >
                   <CardHeader>
                     <div className="flex justify-between items-start">

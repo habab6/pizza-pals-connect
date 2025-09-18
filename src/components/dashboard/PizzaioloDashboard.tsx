@@ -115,7 +115,7 @@ const PizzaioloDashboard = () => {
     const statusConfig = {
       nouveau: { label: "Nouveau", variant: "destructive" as const },
       en_preparation: { label: "En préparation", variant: "warning" as const },
-      pret: { label: "Prêt", variant: "info" as const }
+      pret: { label: "Prêt", variant: "success" as const }
     };
 
     const config = statusConfig[statut as keyof typeof statusConfig];
@@ -126,6 +126,15 @@ const PizzaioloDashboard = () => {
         {config.label}
       </Badge>
     );
+  };
+
+  const getCardStyle = (statut: string) => {
+    const styles = {
+      nouveau: "border-l-4 border-l-red-500 bg-red-50/30",
+      en_preparation: "border-l-4 border-l-orange-500 bg-orange-50/30", 
+      pret: "border-l-4 border-l-green-500 bg-green-50/30"
+    };
+    return styles[statut as keyof typeof styles] || "border-l-4 border-l-gray-500";
   };
 
   const getTypeCommande = (type: string) => {
@@ -243,7 +252,7 @@ const PizzaioloDashboard = () => {
             const isNouveau = statutDolce === 'nouveau';
             
             return (
-              <Card key={commande.id} className={`border-l-4 ${isMixte ? 'border-l-purple-500' : 'border-l-red-500'} ${isNouveau ? 'notification-alert' : ''}`}>
+              <Card key={commande.id} className={`${isMixte ? 'border-l-4 border-l-purple-500 bg-purple-50/30' : getCardStyle(statutDolce)} ${isNouveau ? 'notification-alert' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>

@@ -165,6 +165,14 @@ const LivreurDashboard = () => {
     return methods[method as keyof typeof methods] || method;
   };
 
+  const getCardStyle = (statut: string) => {
+    if (statut === 'en_livraison') {
+      return "border-l-4 border-l-orange-500 bg-orange-50/30";
+    }
+    // Pour les livraisons disponibles (statut 'pret')
+    return "border-l-4 border-l-red-500 bg-red-50/30";
+  };
+
   const fetchCommandeComplete = async (commandeId: string) => {
     try {
       const { data, error } = await supabase
@@ -239,7 +247,7 @@ const LivreurDashboard = () => {
           <h3 className="text-xl font-semibold text-gray-900">Mes livraisons en cours</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {mesLivraisons.map((commande) => (
-              <Card key={commande.id} className="border-l-4 border-l-orange-500">
+              <Card key={commande.id} className={getCardStyle('en_livraison')}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -343,7 +351,7 @@ const LivreurDashboard = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {commandes.map((commande) => (
-              <Card key={commande.id} className="border-l-4 border-l-red-500 notification-alert">
+              <Card key={commande.id} className={`${getCardStyle('pret')} notification-alert`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
