@@ -49,7 +49,40 @@ const CaissierDashboard = () => {
     enableRealtime: true
   });
 
-  const getStatusBadge = (statut: string) => {
+  // Calculer le statut global basé sur les statuts des commerces
+  const getGlobalStatus = (commande: any) => {
+    const hasDolce = commande.commande_items?.some((item: any) => 
+      item.produits?.commerce === 'dolce_italia'
+    ) || false;
+    
+    const hasLSF = commande.commande_items?.some((item: any) => 
+      item.produits?.commerce === '961_lsf'
+    ) || false;
+
+    const statutDolce = commande.statut_dolce_italia || 'nouveau';
+    const statutLSF = commande.statut_961_lsf || 'nouveau';
+
+    // Si c'est une commande mixte
+    if (hasDolce && hasLSF) {
+      // Si les deux commerces sont terminés -> pret
+      if (statutDolce === 'pret' && statutLSF === 'pret') return 'pret';
+      // Si au moins un commerce est en préparation -> en_preparation
+      if (statutDolce === 'en_preparation' || statutLSF === 'en_preparation') return 'en_preparation';
+      // Sinon -> nouveau
+      return 'nouveau';
+    }
+    
+    // Commande d'un seul commerce
+    if (hasDolce) return statutDolce;
+    if (hasLSF) return statutLSF;
+    
+    // Fallback sur le statut global
+    return commande.statut;
+  };
+
+  const getStatusBadge = (commande: any) => {
+    const statut = getGlobalStatus(commande);
+    
     const statusConfig = {
       nouveau: { label: "Nouveau", variant: "destructive" as const, icon: Clock },
       en_preparation: { label: "En préparation", variant: "warning" as const, icon: Clock },
@@ -327,7 +360,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouvelles</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {commandes.filter(c => c.statut === 'nouveau').length}
+                  {commandes.filter(c => getGlobalStatus(c) === 'nouveau').length}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-red-600" />
@@ -341,7 +374,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En préparation</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {commandes.filter(c => c.statut === 'en_preparation').length}
+                  {commandes.filter(c => getGlobalStatus(c) === 'en_preparation').length}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-orange-600" />
@@ -355,7 +388,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Prêtes</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {commandes.filter(c => c.statut === 'pret').length}
+                  {commandes.filter(c => getGlobalStatus(c) === 'pret').length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -369,7 +402,7 @@ const CaissierDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">En livraison</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {commandes.filter(c => c.statut === 'en_livraison').length}
+                  {commandes.filter(c => getGlobalStatus(c) === 'en_livraison').length}
                 </p>
               </div>
               <Truck className="h-8 w-8 text-blue-600" />
@@ -394,7 +427,7 @@ const CaissierDashboard = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-2 gap-1 sm:gap-0">
                       <h3 className="font-semibold text-base md:text-lg">{commande.numero_commande}</h3>
                       <div className="flex items-center space-x-2">
-                        {getStatusBadge(commande.statut)}
+                        {getStatusBadge(commande)}
                         <Badge variant="outline" className="text-xs">{getTypeCommande(commande.type_commande)}</Badge>
                       </div>
                     </div>
@@ -408,7 +441,7 @@ const CaissierDashboard = () => {
                   </div>
                   <div className="flex space-x-2 justify-end sm:justify-start">
                     {(commande.type_commande === 'sur_place' || commande.type_commande === 'a_emporter') && 
-                     commande.statut === 'pret' && (
+                     getGlobalStatus(commande) === 'pret' && (
                       <Button
                         onClick={() => marquerServie(commande.id)}
                         variant="default"
