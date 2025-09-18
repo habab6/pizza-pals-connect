@@ -589,14 +589,14 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
                 <div>
                   <Label htmlFor="categorie_custom">Ou catégorie personnalisée</Label>
                   <Select 
-                    value={formData.categorie_custom_id || ''} 
-                    onValueChange={(value) => setFormData({...formData, categorie_custom_id: value || null})}
+                    value={formData.categorie_custom_id || 'none'} 
+                    onValueChange={(value) => setFormData({...formData, categorie_custom_id: value === 'none' ? null : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une catégorie personnalisée" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucune</SelectItem>
+                      <SelectItem value="none">Aucune</SelectItem>
                       {customCategories
                         .filter(cat => cat.commerce === formData.commerce)
                         .map(cat => (
