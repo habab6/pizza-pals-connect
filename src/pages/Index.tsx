@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Receipt, Pizza, Sandwich, Truck, Lock, LogOut } from "lucide-react";
+import { Receipt, Pizza, Sandwich, Truck, Lock, LogOut, Users } from "lucide-react";
 import { PosteLoginModal } from "@/components/auth/PosteLoginModal";
 import { usePosteAuth } from "@/hooks/usePosteAuth";
 
@@ -94,6 +94,9 @@ const Index = () => {
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12">
+          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
+            <Users className="h-12 w-12 text-white" />
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Système de gestion
           </h1>
