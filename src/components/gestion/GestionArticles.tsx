@@ -532,27 +532,25 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
               <Label htmlFor="est_extra">Article extra (prix décidé par le caissier)</Label>
             </div>
 
-            {!formData.est_extra && (
-              <div>
-                <Label htmlFor="categorie">Catégorie *</Label>
-                <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customCategories
-                      .filter(cat => cat.commerce === formData.commerce)
-                      .map(cat => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.nom}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
+            <div>
+              <Label htmlFor="categorie">Catégorie *</Label>
+              <Select value={formData.categorie} onValueChange={(value: any) => setFormData({...formData, categorie: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customCategories
+                    .filter(cat => cat.commerce === formData.commerce)
+                    .map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.nom}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
                 </Select>
               </div>
-            )}
 
-            {!formData.est_extra && (
+              {!formData.est_extra && (
               <div>
                 <Label htmlFor="prix">Prix (€) *</Label>
                 <Input
