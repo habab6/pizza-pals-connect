@@ -423,19 +423,6 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
     }
   };
 
-  const categories = [
-    // Dolce Italia
-    { key: 'pizzas', label: 'Pizzas', color: 'bg-red-50 text-red-700 border-red-200' },
-    { key: 'pates', label: 'Pâtes', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-    { key: 'desserts', label: 'Desserts', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-    { key: 'boissons', label: 'Boissons', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-    // 961 LSF
-    { key: 'entrees', label: 'Entrées', color: 'bg-green-50 text-green-700 border-green-200' },
-    { key: 'sandwiches', label: 'Sandwiches', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-    { key: 'bowls_salades', label: 'Bowls & Salades', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-    { key: 'frites', label: 'Frites', color: 'bg-amber-50 text-amber-700 border-amber-200' }
-  ];
-
   const canProceedToClient = () => {
     return panier.length > 0;
   };
