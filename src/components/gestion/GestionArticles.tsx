@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import GestionCategories from "./GestionCategories";
 
 interface Produit {
   id: string;
@@ -42,7 +41,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   const [customCategories, setCustomCategories] = useState<Categorie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showCategoriesManagement, setShowCategoriesManagement] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Produit | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Produit | null>(null);
   const [formData, setFormData] = useState({
@@ -263,27 +261,13 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
     }
   };
 
-  const defaultCategories = [
-    // Dolce Italia
-    { key: 'pizzas', label: 'Pizzas', commerce: 'dolce_italia' },
-    { key: 'pates', label: 'Pâtes', commerce: 'dolce_italia' },
-    { key: 'desserts', label: 'Desserts', commerce: 'dolce_italia' },
-    { key: 'boissons', label: 'Boissons', commerce: 'both' },
-    // 961 LSF
-    { key: 'entrees', label: 'Entrées', commerce: '961_lsf' },
-    { key: 'sandwiches', label: 'Sandwiches', commerce: '961_lsf' },
-    { key: 'bowls_salades', label: 'Bowls & Salades', commerce: '961_lsf' },
-    { key: 'frites', label: 'Frites', commerce: '961_lsf' },
-    // Extra pour les deux commerces
-    { key: 'extra', label: 'Extra', commerce: 'both' }
-  ];
-
   const getCategoryInfo = (product: Produit) => {
     if (product.categorie_custom_id) {
       const customCat = customCategories.find(cat => cat.id === product.categorie_custom_id);
       return customCat ? { key: customCat.id, label: customCat.nom } : { key: 'custom', label: 'Catégorie personnalisée' };
     }
-    return defaultCategories.find(cat => cat.key === product.categorie) || { key: product.categorie, label: product.categorie };
+    // Si pas de catégorie personnalisée, utiliser la catégorie par défaut du produit
+    return { key: product.categorie, label: product.categorie };
   };
 
   const filteredProducts = produits.filter(product => {
@@ -313,41 +297,20 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
   };
 
   const getAllCategories = () => {
-    const defaults = defaultCategories.map(cat => ({
-      key: cat.key,
-      label: cat.label,
-      isCustom: false
-    }));
-    
-    const customs = customCategories.map(cat => ({
+    // Utiliser uniquement les catégories personnalisées de la DB
+    return customCategories.map(cat => ({
       key: cat.id,
       label: cat.nom,
       isCustom: true
     }));
-
-    return [...defaults, ...customs];
   };
 
   const getCategoriesForCommerce = (commerce: string) => {
-    const defaults = defaultCategories.filter(cat => cat.commerce === commerce || cat.commerce === 'both');
-    const customs = customCategories.filter(cat => cat.commerce === commerce);
-    
-    return [
-      ...defaults,
-      ...customs.map(cat => ({ key: cat.id, label: cat.nom, commerce: cat.commerce }))
-    ];
+    // Retourner uniquement les catégories personnalisées pour le commerce sélectionné
+    return customCategories
+      .filter(cat => cat.commerce === commerce)
+      .map(cat => ({ key: cat.id, label: cat.nom, commerce: cat.commerce }));
   };
-
-  if (showCategoriesManagement) {
-    return (
-      <GestionCategories 
-        onClose={() => {
-          setShowCategoriesManagement(false);
-          fetchCustomCategories();
-        }} 
-      />
-    );
-  }
 
   if (isLoading) {
     return (
@@ -373,15 +336,6 @@ const GestionArticles = ({ onClose }: GestionArticlesProps) => {
           >
             <Plus className="h-4 w-4" />
             <span>Ajouter un article</span>
-          </Button>
-
-          <Button 
-            onClick={() => setShowCategoriesManagement(true)}
-            variant="outline"
-            className="flex items-center space-x-2"
-          >
-            <Edit3 className="h-4 w-4" />
-            <span>Gérer les catégories</span>
           </Button>
 
           <div className="flex flex-1 gap-2">
