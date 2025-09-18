@@ -15,7 +15,6 @@ import GestionCategories from "@/components/gestion/GestionCategories";
 import GestionMotsDePasse from "@/components/gestion/GestionMotsDePasse";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;

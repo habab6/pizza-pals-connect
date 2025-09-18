@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdaptivePolling } from "@/hooks/useAdaptivePolling";
 import NouvelleCommandeModal from "@/components/modals/NouvelleCommandeModal";
 import { stopNotificationSound } from "@/utils/notificationSound";
-import { DebugInfo } from "@/components/ui/DebugInfo";
 
 interface Commande {
   id: string;
@@ -165,8 +164,6 @@ const PizzaioloDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Debug Info en développement */}
-      <DebugInfo debugInfo={debugInfo} />
       
       <div className="flex items-center space-x-3">
         <ChefHat className="h-8 w-8 text-red-600" />
