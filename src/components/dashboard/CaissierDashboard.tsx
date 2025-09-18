@@ -153,6 +153,7 @@ const CaissierDashboard = () => {
 
       // Préparer les mises à jour de statut
       const updates: any = {
+        statut: 'termine', // Mettre à jour le statut global
         mode_paiement: selectedPaymentMethod as any
       };
 
