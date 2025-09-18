@@ -13,6 +13,7 @@ import { Plus, Minus, Search, ShoppingCart, X, Check, MapPin, Phone, MessageSqua
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PrixExtraModal from "@/components/modals/PrixExtraModal";
+import ExtraProduitModal from "@/components/modals/ExtraProduitModal";
 
 interface Produit {
   id: string;
@@ -24,11 +25,18 @@ interface Produit {
   categorie_custom_id: string | null;
 }
 
+interface CartExtra {
+  id: string;
+  nom: string;
+  prix: number;
+}
+
 interface CartItem {
   produit: Produit;
   quantite: number;
   prix_unitaire?: number; // Pour les articles extra avec prix personnalisé
   nom_personnalise?: string; // Pour les articles extra avec nom personnalisé
+  extras?: CartExtra[]; // Extras liés à ce produit spécifique
 }
 
 interface Client {
@@ -63,6 +71,8 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const [commerceActive, setCommerceActive] = useState<'dolce_italia' | '961_lsf'>('dolce_italia');
   const [showPrixExtraModal, setShowPrixExtraModal] = useState(false);
   const [produitPourPrixExtra, setProduitPourPrixExtra] = useState<Produit | null>(null);
+  const [showExtraProduitModal, setShowExtraProduitModal] = useState(false);
+  const [produitPourExtra, setProduitPourExtra] = useState<CartItem | null>(null);
   
   const { toast } = useToast();
 
@@ -253,13 +263,46 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
   const calculerTotal = () => {
     return panier.reduce((total, item) => {
       const prix = item.prix_unitaire || item.produit.prix;
-      return total + (prix * item.quantite);
+      const prixExtras = item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0;
+      return total + ((prix + prixExtras) * item.quantite);
     }, 0);
   };
 
   const getQuantiteInPanier = (produitId: string) => {
     const item = panier.find(p => p.produit.id === produitId);
     return item ? item.quantite : 0;
+  };
+
+  // Ajouter un extra à un produit spécifique du panier
+  const ajouterExtraAuProduit = (produitIndex: number, extra: CartExtra) => {
+    setPanier(prev => prev.map((item, index) => {
+      if (index === produitIndex) {
+        return {
+          ...item,
+          extras: [...(item.extras || []), extra]
+        };
+      }
+      return item;
+    }));
+  };
+
+  // Supprimer un extra d'un produit
+  const supprimerExtraDuProduit = (produitIndex: number, extraIndex: number) => {
+    setPanier(prev => prev.map((item, index) => {
+      if (index === produitIndex) {
+        return {
+          ...item,
+          extras: item.extras?.filter((_, i) => i !== extraIndex) || []
+        };
+      }
+      return item;
+    }));
+  };
+
+  // Ouvrir le modal pour ajouter un extra à un produit
+  const ouvrirModalExtraProduit = (item: CartItem) => {
+    setProduitPourExtra(item);
+    setShowExtraProduitModal(true);
   };
 
     // Détecter si la commande contient des articles des deux commerces (commande mixte)
@@ -727,58 +770,171 @@ const NouvelleCommande = ({ onClose }: NouvelleCommandeProps) => {
                         <p className="text-sm text-center">Ajoutez des produits à votre commande</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {panier.map((item) => (
-                          <Card key={item.produit.id} className="p-3">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                   <h5 className="text-sm font-medium truncate">
-                                     {item.nom_personnalise || formatProduitNom(item.produit.nom, item.produit.categorie)}
-                                     {item.produit.est_extra && (
-                                       <Badge variant="outline" className="ml-1 text-xs">
-                                         {item.nom_personnalise ? 'Personnalisé' : 'Extra'}
-                                       </Badge>
-                                     )}
-                                   </h5>
-                                   <p className="text-xs text-muted-foreground">
-                                     {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
-                                     {item.produit.est_extra && (item.prix_unitaire !== item.produit.prix || item.nom_personnalise) && (
-                                       <span className="text-blue-600 ml-1">(Personnalisé)</span>
-                                     )}
-                                   </p>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => modifierQuantite(item.produit.id, -1)}
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <span className="text-sm w-6 text-center font-medium">{item.quantite}</span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => modifierQuantite(item.produit.id, 1)}
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                              
-                              <div className="flex justify-end">
-                                <p className="text-sm font-bold text-primary">
-                                  {(item.produit.prix * item.quantite).toFixed(2)}€
-                                </p>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                        
-                        {/* Instructions spéciales dans le panier */}
+                       <div className="space-y-3">
+                         {panier.map((item, itemIndex) => (
+                           <Card key={`${item.produit.id}-${itemIndex}`} className="p-3">
+                             <div className="space-y-2">
+                               <div className="flex items-center justify-between">
+                                 <div className="flex-1 min-w-0">
+                                    <h5 className="text-sm font-medium truncate">
+                                      {item.nom_personnalise || formatProduitNom(item.produit.nom, item.produit.categorie)}
+                                      {item.produit.est_extra && (
+                                        <Badge variant="outline" className="ml-1 text-xs">
+                                          {item.nom_personnalise ? 'Personnalisé' : 'Extra'}
+                                        </Badge>
+                                      )}
+                                    </h5>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(item.prix_unitaire || item.produit.prix).toFixed(2)}€ × {item.quantite}
+                                      {item.produit.est_extra && (item.prix_unitaire !== item.produit.prix || item.nom_personnalise) && (
+                                        <span className="text-blue-600 ml-1">(Personnalisé)</span>
+                                      )}
+                                    </p>
+                                 </div>
+                                 <div className="flex items-center space-x-1">
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => modifierQuantite(item.produit.id, -1)}
+                                     className="h-6 w-6 p-0"
+                                   >
+                                     <Minus className="h-3 w-3" />
+                                   </Button>
+                                   <span className="text-sm w-6 text-center font-medium">{item.quantite}</span>
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => modifierQuantite(item.produit.id, 1)}
+                                     className="h-6 w-6 p-0"
+                                   >
+                                     <Plus className="h-3 w-3" />
+                                   </Button>
+                                 </div>
+                               </div>
+                               
+                               {/* Affichage des extras */}
+                               {item.extras && item.extras.length > 0 && (
+                                 <div className="ml-2 space-y-1">
+                                   {item.extras.map((extra, extraIndex) => (
+                                     <div key={`${extra.id}-${extraIndex}`} className="flex items-center justify-between text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
+                                       <span>+ {extra.nom} ({extra.prix.toFixed(2)}€)</span>
+                                       <Button
+                                         size="sm"
+                                         variant="ghost"
+                                         onClick={() => supprimerExtraDuProduit(itemIndex, extraIndex)}
+                                         className="h-4 w-4 p-0 text-destructive hover:text-destructive"
+                                       >
+                                         <X className="h-2 w-2" />
+                                       </Button>
+                                     </div>
+                                   ))}
+                                 </div>
+                               )}
+                               
+                               {/* Bouton pour ajouter un extra */}
+                               {!item.produit.est_extra && (
+                                 <div className="flex justify-start">
+                                   <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     onClick={() => ouvrirModalExtraProduit(item)}
+                                     className="h-6 text-xs text-blue-600 hover:text-blue-700 p-1"
+                                   >
+                                     <Plus className="h-3 w-3 mr-1" />
+                                     Ajouter extra
+                                   </Button>
+                                 </div>
+                               )}
+                               
+                               <div className="flex justify-end">
+                                 <p className="text-sm font-bold text-primary">
+                                   {((item.prix_unitaire || item.produit.prix) + (item.extras?.reduce((sum, extra) => sum + extra.prix, 0) || 0) * item.quantite).toFixed(2)}€
+                                 </p>
+                               </div>
+                             </div>
+                           </Card>
+                         ))}
+                         {/* Instructions spéciales dans le panier */}
+                         <div className="pt-2 space-y-3">
+                           {!isCommandeMixte() ? (
+                             // Commande simple - une seule zone de commentaire
+                             <div>
+                               <Label className="text-sm font-medium flex items-center mb-2">
+                                 <MessageSquare className="h-4 w-4 mr-2" />
+                                 Instructions spéciales
+                               </Label>
+                               <Textarea
+                                 placeholder="Ex: Cuisson bien cuite, sans oignons, etc..."
+                                 value={notesGenerales}
+                                 onChange={(e) => setNotesGenerales(e.target.value)}
+                                 rows={2}
+                                 className="text-sm resize-none"
+                               />
+                             </div>
+                           ) : (
+                             // Commande mixte - commentaires séparés par commerce
+                             <div className="space-y-3">
+                               <div className="text-sm font-medium text-purple-600 mb-2">
+                                 📝 Commande mixte - Commentaires par préparateur
+                               </div>
+                               
+                               {hasCommerceItems('dolce_italia') && (
+                                 <div>
+                                   <Label className="text-sm font-medium flex items-center mb-2 text-red-600">
+                                     <MessageSquare className="h-4 w-4 mr-2" />
+                                     Notes pour Dolce Italia (Pizzas/Pâtes)
+                                   </Label>
+                                   <Textarea
+                                     placeholder="Ex: Pizza bien cuite, sans champignons..."
+                                     value={notesDolceItalia}
+                                     onChange={(e) => setNotesDolceItalia(e.target.value)}
+                                     rows={2}
+                                     className="text-sm resize-none border-red-200 focus:border-red-300"
+                                   />
+                                 </div>
+                               )}
+                               
+                               {hasCommerceItems('961_lsf') && (
+                                 <div>
+                                   <Label className="text-sm font-medium flex items-center mb-2 text-blue-600">
+                                     <MessageSquare className="h-4 w-4 mr-2" />
+                                     Notes pour 961 LSF (Sandwiches/Salades)
+                                   </Label>
+                                   <Textarea
+                                     placeholder="Ex: Sans sauce piquante, salade à part..."
+                                     value={notes961LSF}
+                                     onChange={(e) => setNotes961LSF(e.target.value)}
+                                     rows={2}
+                                     className="text-sm resize-none border-blue-200 focus:border-blue-300"
+                                   />
+                                 </div>
+                               )}
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </ScrollArea>
+               </div>
+
+               {panier.length > 0 && (
+                 <div className="flex-shrink-0 p-4 border-t bg-background">
+                   <Button
+                     onClick={() => setCurrentView('client')}
+                     className="w-full"
+                     size="lg"
+                   >
+                     Continuer
+                     <ChevronRight className="h-4 w-4 ml-2" />
+                   </Button>
+                 </div>
+               )}
+             </div>
+           </div>
+         )}
+
+         {currentView === 'client' && (
                         <div className="pt-2 space-y-3">
                           {!isCommandeMixte() ? (
                             // Commande simple - une seule zone de commentaire
